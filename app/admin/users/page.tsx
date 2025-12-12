@@ -3,32 +3,33 @@
 import { Edit, Plus, Trash } from "lucide-react";
 import { useEffect, useState } from "react";
 
-interface Shift {
+interface User {
   id: string;
-  namaShift: string;
-  jamMulai: string;
-  jamSelesai: string;
+  name: string;
+  username: string;
+  role: string;
+  password?: string;
 }
 
-export default function ShiftsPage() {
-  const [shifts, setShifts] = useState<Shift[]>([]);
+export default function UsersPage() {
+  const [users, setUsers] = useState<User[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<Partial<Shift>>({});
+  const [formData, setFormData] = useState<Partial<User>>({});
 
   useEffect(() => {
-    fetchShifts();
+    fetchUsers();
   }, []);
 
-  const fetchShifts = async () => {
-    const res = await fetch("/api/shifts");
+  const fetchUsers = async () => {
+    const res = await fetch("/api/users");
     const data = await res.json();
-    setShifts(data);
+    setUsers(data);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const url = isEditing ? `/api/shifts/${formData.id}` : "/api/shifts";
+    const url = isEditing ? `/api/users/${formData.id}` : "/api/users";
     const method = isEditing ? "PUT" : "POST";
 
     await fetch(url, {
@@ -38,19 +39,19 @@ export default function ShiftsPage() {
     });
 
     setIsModalOpen(false);
-    fetchShifts();
+    fetchUsers();
     resetForm();
   };
 
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure?")) {
-      await fetch(`/api/shifts/${id}`, { method: "DELETE" });
-      fetchShifts();
+      await fetch(`/api/users/${id}`, { method: "DELETE" });
+      fetchUsers();
     }
   };
 
   const resetForm = () => {
-    setFormData({});
+    setFormData({ role: "SATPAM" });
     setIsEditing(false);
   };
 
@@ -59,8 +60,8 @@ export default function ShiftsPage() {
     setIsModalOpen(true);
   };
 
-  const openEditModal = (shift: Shift) => {
-    setFormData(shift);
+  const openEditModal = (user: User) => {
+    setFormData({ ...user, password: "" }); // Don't show password hash
     setIsEditing(true);
     setIsModalOpen(true);
   };
@@ -69,7 +70,7 @@ export default function ShiftsPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-          Data Shift
+          Data Satpam & Admin
         </h1>
         <button
           type="button"
@@ -77,7 +78,7 @@ export default function ShiftsPage() {
           className="flex items-center rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
         >
           <Plus className="mr-2 h-5 w-5" />
-          Tambah Shift
+          Tambah User
         </button>
       </div>
 
@@ -86,13 +87,13 @@ export default function ShiftsPage() {
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
-                Nama Shift
+                Nama
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
-                Jam Mulai
+                Username
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
-                Jam Selesai
+                Role
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                 Aksi
@@ -100,28 +101,36 @@ export default function ShiftsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
-            {shifts.map((shift) => (
-              <tr key={shift.id}>
+            {users.map((user) => (
+              <tr key={user.id}>
                 <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
-                  {shift.namaShift}
+                  {user.name}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                  {shift.jamMulai}
+                  {user.username}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                  {shift.jamSelesai}
+                  <span
+                    className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                      user.role === "ADMIN"
+                        ? "bg-purple-100 text-purple-800"
+                        : "bg-green-100 text-green-800"
+                    }`}
+                  >
+                    {user.role}
+                  </span>
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                   <button
                     type="button"
-                    onClick={() => openEditModal(shift)}
+                    onClick={() => openEditModal(user)}
                     className="mr-2 text-blue-600 hover:text-blue-900 dark:text-blue-400"
                   >
                     <Edit className="h-5 w-5" />
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDelete(shift.id)}
+                    onClick={() => handleDelete(user.id)}
                     className="text-red-600 hover:text-red-900 dark:text-red-400"
                   >
                     <Trash className="h-5 w-5" />
@@ -137,64 +146,85 @@ export default function ShiftsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
             <h2 className="mb-4 text-xl font-bold dark:text-white">
-              {isEditing ? "Edit Shift" : "Tambah Shift"}
+              {isEditing ? "Edit User" : "Tambah User"}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label
-                  htmlFor="namaShift"
+                  htmlFor="name"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
-                  Nama Shift
+                  Nama Lengkap
                 </label>
                 <input
-                  id="namaShift"
+                  id="name"
                   type="text"
                   required
-                  value={formData.namaShift || ""}
+                  value={formData.name || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, namaShift: e.target.value })
+                    setFormData({ ...formData, name: e.target.value })
                   }
                   className="mt-1 block w-full rounded-md border border-gray-300 p-2 dark:border-gray-600 dark:bg-gray-700"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="jamMulai"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >
-                    Jam Mulai
-                  </label>
-                  <input
-                    id="jamMulai"
-                    type="time"
-                    required
-                    value={formData.jamMulai || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, jamMulai: e.target.value })
-                    }
-                    className="mt-1 block w-full rounded-md border border-gray-300 p-2 dark:border-gray-600 dark:bg-gray-700"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="jamSelesai"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >
-                    Jam Selesai
-                  </label>
-                  <input
-                    id="jamSelesai"
-                    type="time"
-                    required
-                    value={formData.jamSelesai || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, jamSelesai: e.target.value })
-                    }
-                    className="mt-1 block w-full rounded-md border border-gray-300 p-2 dark:border-gray-600 dark:bg-gray-700"
-                  />
-                </div>
+
+              <div>
+                <label
+                  htmlFor="username"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Username
+                </label>
+                <input
+                  id="username"
+                  type="text"
+                  required
+                  value={formData.username || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, username: e.target.value })
+                  }
+                  className="mt-1 block w-full rounded-md border border-gray-300 p-2 dark:border-gray-600 dark:bg-gray-700"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="role"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Role
+                </label>
+                <select
+                  id="role"
+                  value={formData.role || "SATPAM"}
+                  onChange={(e) =>
+                    setFormData({ ...formData, role: e.target.value })
+                  }
+                  className="mt-1 block w-full rounded-md border border-gray-300 p-2 dark:border-gray-600 dark:bg-gray-700"
+                >
+                  <option value="SATPAM">Satpam</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Password{" "}
+                  {isEditing && "(Kosongkan jika tidak ingin mengubah)"}
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required={!isEditing}
+                  value={formData.password || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  className="mt-1 block w-full rounded-md border border-gray-300 p-2 dark:border-gray-600 dark:bg-gray-700"
+                />
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">

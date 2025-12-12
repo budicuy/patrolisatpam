@@ -1,64 +1,53 @@
-import { count } from "drizzle-orm";
-import { Activity, MapPin, Users } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { db } from "@/lib/db";
-import { locations, patrolLogs, users } from "@/lib/db/schema";
+import { auth, signOut } from "@/auth";
 
 export default async function AdminDashboard() {
-  // Fetch concise stats
-  const [userCount] = await db.select({ count: count() }).from(users);
-  const [locationCount] = await db.select({ count: count() }).from(locations);
-  const [logCount] = await db.select({ count: count() }).from(patrolLogs);
+  const session = await auth();
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-3xl font-bold tracking-tight">Dashboard Overview</h2>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Pengguna
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{userCount.count}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Lokasi</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{locationCount.count}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Log Patroli
-            </CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{logCount.count}</div>
-          </CardContent>
-        </Card>
+    <div className="min-h-screen bg-gray-100 p-8 dark:bg-gray-900">
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          Admin Dashboard
+        </h1>
+        <form
+          action={async () => {
+            "use server";
+            await signOut();
+          }}
+        >
+          <button
+            type="button"
+            className="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+          >
+            Sign Out
+          </button>
+        </form>
       </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Aktivitas Terkini</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-500">
-              Belum ada aktivitas patroli yang tercatat hari ini.
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 md:grid-cols-3">
+        <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+            Data Tempat
+          </h3>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
+            Manage patrol locations and geofencing.
+          </p>
+        </div>
+        <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+            Data Shift
+          </h3>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
+            Manage work shifts.
+          </p>
+        </div>
+        <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+            Data User
+          </h3>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
+            Manage security guards.
+          </p>
+        </div>
       </div>
     </div>
   );

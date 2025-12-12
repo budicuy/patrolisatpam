@@ -1,76 +1,101 @@
 "use client";
 
-import { ShieldCheck } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { useActionState } from "react";
-import { login } from "@/app/actions";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-
-const initialState = {
-  error: "",
-};
+import { authenticate } from "@/app/lib/actions";
 
 export default function LoginPage() {
-  const [state, action, pending] = useActionState(login, initialState);
+  const [errorMessage, formAction, isPending] = useActionState(
+    authenticate,
+    undefined,
+  );
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-blue-600 rounded-full">
-              <ShieldCheck className="h-8 w-8 text-white" />
-            </div>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4 dark:bg-gray-900">
+      <div className="w-full max-w-md space-y-8 rounded-2xl bg-white p-8 shadow-xl dark:bg-gray-800">
+        <div className="text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 p-3 dark:bg-blue-900">
+            <ShieldCheck className="h-10 w-10 text-blue-600 dark:text-blue-300" />
           </div>
-          <CardTitle className="text-2xl font-bold text-gray-900">
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-white">
             Patroli Satpam
-          </CardTitle>
-          <CardDescription>
-            Masuk untuk memulai sesi patroli atau memantau keamanan
-          </CardDescription>
-        </CardHeader>
-        <form action={action}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
+          </h2>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Silakan masuk untuk melanjutkan
+          </p>
+        </div>
+
+        <form action={formAction} className="mt-8 space-y-6">
+          <div className="space-y-4 rounded-md shadow-sm">
+            <div>
+              <label htmlFor="username" className="sr-only">
+                Username
+              </label>
+              <input
                 id="username"
                 name="username"
                 type="text"
-                placeholder="Masukkan username"
                 required
+                className="relative block w-full rounded-lg border border-gray-300 px-3 py-3 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-400"
+                placeholder="Username"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" required />
+            <div>
+              <label htmlFor="password" className="sr-only">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                className="relative block w-full rounded-lg border border-gray-300 px-3 py-3 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-400"
+                placeholder="Password"
+              />
             </div>
-            {state?.error && (
-              <div className="text-sm text-red-500 font-medium text-center">
-                {state.error}
-              </div>
-            )}
-          </CardContent>
-          <CardFooter>
-            <Button
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <input
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900"
+              />
+              <label
+                htmlFor="remember-me"
+                className="ml-2 block text-sm text-gray-900 dark:text-gray-300"
+              >
+                Ingat saya
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <button
               type="submit"
-              className="w-full bg-blue-700 hover:bg-blue-800"
-              disabled={pending}
+              disabled={isPending}
+              className="group relative flex w-full justify-center rounded-lg border border-transparent bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 dark:focus:ring-offset-gray-900"
             >
-              {pending ? "Memproses..." : "Masuk"}
-            </Button>
-          </CardFooter>
+              {isPending && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+              Masuk
+            </button>
+          </div>
+
+          <div
+            className="flex h-8 items-end space-x-1"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {errorMessage && (
+              <p className="text-sm text-red-500 dark:text-red-400">
+                {errorMessage}
+              </p>
+            )}
+          </div>
         </form>
-      </Card>
+      </div>
     </div>
   );
 }
