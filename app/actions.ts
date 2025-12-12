@@ -2,10 +2,9 @@
 
 import bcrypt from "bcryptjs";
 import { and, eq } from "drizzle-orm";
-import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { verifySession } from "@/lib/auth";
+import { encrypt, verifySession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
   locations,
@@ -22,8 +21,6 @@ export type ActionState = {
 };
 
 // --- Auth Helpers (New) ---
-const secretKey = process.env.SESSION_SECRET;
-const key = new TextEncoder().encode(secretKey);
 
 async function getUser(username: string) {
   return db.query.users.findFirst({
@@ -53,7 +50,6 @@ export async function login(
     id: user.id,
     username: user.username,
     role: user.role,
-    expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
   });
 
   cookieStore.set("session", session, {
