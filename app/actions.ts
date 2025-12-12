@@ -190,12 +190,19 @@ export async function getPatrolState() {
   if (!isAuth || !userId) return null;
 
   // Get active session
-  const session = await db.query.patrolSessions.findFirst({
+  // Separate queries to avoid LATERAL JOIN issues with TiDB
+  const sessionRaw = await db.query.patrolSessions.findFirst({
     where: (s) => and(eq(s.userId, userId), eq(s.status, "ongoing")),
-    with: {
-      logs: true,
-    },
   });
+
+  let session = null;
+
+  if (sessionRaw) {
+    const logs = await db.query.patrolLogs.findMany({
+      where: eq(patrolLogs.sessionId, sessionRaw.id),
+    });
+    session = { ...sessionRaw, logs };
+  }
 
   // Get all locations
   const allLocations = await db
