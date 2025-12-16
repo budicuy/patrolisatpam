@@ -1,7 +1,7 @@
 "use client";
 
 import { getDistance } from "geolib";
-import { CheckCircle, Loader2, LogOut, MapPin } from "lucide-react";
+import { CheckCircle, Loader2, LogOut, MapPin, RefreshCw } from "lucide-react";
 import dynamic from "next/dynamic";
 import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -18,6 +18,7 @@ const PatrolMap = dynamic(() => import("./patrol-map"), {
 });
 
 export default function PatrolInterface({ user, locations, shifts }: any) {
+
   const [isPatrolling, setIsPatrolling] = useState(false);
   const [currentPosition, setCurrentPosition] = useState<{
     lat: number;
@@ -251,7 +252,7 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
               className="rounded-full p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400"
               title="Refresh Lokasi"
             >
-              <Loader2 className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
             </button>
             <div
               className={`h-3 w-3 rounded-full ${distanceToTarget && targetLocation && distanceToTarget <= targetLocation.radius ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
