@@ -54,6 +54,7 @@ export default function MapPicker({
 
 import { Locate } from "lucide-react";
 import { useMap } from "react-leaflet";
+import { useRef } from "react";
 
 function MyLocationButton({
   onPositionChange,
@@ -61,8 +62,18 @@ function MyLocationButton({
   onPositionChange: (pos: any) => void;
 }) {
   const map = useMap();
+  const divRef = useRef<HTMLDivElement>(null);
 
-  const handleLocate = () => {
+  useEffect(() => {
+    if (divRef.current) {
+      L.DomEvent.disableClickPropagation(divRef.current);
+      L.DomEvent.disableScrollPropagation(divRef.current);
+    }
+  }, []);
+
+  const handleLocate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     map.locate().on("locationfound", (e) => {
       onPositionChange(e.latlng);
       map.flyTo(e.latlng, map.getZoom());
@@ -70,7 +81,28 @@ function MyLocationButton({
   };
 
   return (
-    <div className="absolute top-4 right-4 z-[999]">
+    // biome-ignore lint/a11y/useKeyWithClickEvents: Overlay intentionally blocks map interactions
+    // biome-ignore lint/a11y/noStaticElementInteractions: Overlay intentionally blocks map interactions
+    <div
+      ref={divRef}
+      className="absolute top-4 right-4 z-[999]"
+      onClick={(e) => {
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+      }}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+      }}
+      onMouseUp={(e) => {
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+      }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+      }}
+    >
       <button
         type="button"
         onClick={handleLocate}

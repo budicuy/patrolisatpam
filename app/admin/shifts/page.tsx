@@ -101,7 +101,10 @@ export default async function ShiftsPage() {
                       </div>
                     </div>
 
-                    <form action={deleteShift.bind(null, shift.id)} className="self-end sm:self-center">
+                    <form
+                      action={deleteShift.bind(null, shift.id)}
+                      className="self-end sm:self-center"
+                    >
                       <button
                         type="submit"
                         className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors dark:hover:bg-red-900/30"

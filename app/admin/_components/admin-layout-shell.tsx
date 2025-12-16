@@ -1,18 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Sidebar } from "./sidebar";
 
 export function AdminLayoutShell({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
-  const pathname = usePathname();
 
   // Close sidebar when route changes
   useEffect(() => {
     setIsOpen(false);
-  }, [pathname]);
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative">

@@ -11,7 +11,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { cn } from "@/lib/utils"; // We need to create util for cn if not exists, usually Shadcn uses it
+import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
