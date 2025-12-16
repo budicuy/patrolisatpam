@@ -55,11 +55,15 @@ export default function MapPicker({
 import { Locate } from "lucide-react";
 import { useMap } from "react-leaflet";
 
-function MyLocationButton({ onPositionChange }: { onPositionChange: (pos: any) => void }) {
+function MyLocationButton({
+  onPositionChange,
+}: {
+  onPositionChange: (pos: any) => void;
+}) {
   const map = useMap();
 
   const handleLocate = () => {
-    map.locate().on("locationfound", function (e) {
+    map.locate().on("locationfound", (e) => {
       onPositionChange(e.latlng);
       map.flyTo(e.latlng, map.getZoom());
     });

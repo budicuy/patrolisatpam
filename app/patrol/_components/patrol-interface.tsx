@@ -18,7 +18,6 @@ const PatrolMap = dynamic(() => import("./patrol-map"), {
 });
 
 export default function PatrolInterface({ user, locations, shifts }: any) {
-
   const [isPatrolling, setIsPatrolling] = useState(false);
   const [currentPosition, setCurrentPosition] = useState<{
     lat: number;
@@ -94,41 +93,41 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
 
   const handleManualRefresh = () => {
     setLoading(true);
-    
+
     const successCallback = (position: GeolocationPosition) => {
-        const { latitude, longitude, accuracy } = position.coords;
-        setCurrentPosition({ lat: latitude, lng: longitude });
-        setAccuracy(accuracy);
-        
-        if (targetLocation) {
-            const dist = getDistance(
-              { latitude, longitude },
-              {
-                latitude: targetLocation.latitude,
-                longitude: targetLocation.longitude,
-              },
-            );
-            setDistanceToTarget(dist);
-        }
-        setLoading(false);
+      const { latitude, longitude, accuracy } = position.coords;
+      setCurrentPosition({ lat: latitude, lng: longitude });
+      setAccuracy(accuracy);
+
+      if (targetLocation) {
+        const dist = getDistance(
+          { latitude, longitude },
+          {
+            latitude: targetLocation.latitude,
+            longitude: targetLocation.longitude,
+          },
+        );
+        setDistanceToTarget(dist);
+      }
+      setLoading(false);
     };
 
     const errorCallback = (error: GeolocationPositionError) => {
-        console.error("Error forcing location update", error);
-        let msg = "Gagal memperbarui lokasi.";
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            msg = "Izin lokasi ditolak. Cek pengaturan browser.";
-            break;
-          case error.POSITION_UNAVAILABLE:
-            msg = "Lokasi tidak tersedia. Pastikan GPS aktif.";
-            break;
-          case error.TIMEOUT:
-            msg = "Waktu habis. Coba lagi di tempat terbuka.";
-            break;
-        }
-        alert(`${msg} (Code: ${error.code})`);
-        setLoading(false);
+      console.error("Error forcing location update", error);
+      let msg = "Gagal memperbarui lokasi.";
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          msg = "Izin lokasi ditolak. Cek pengaturan browser.";
+          break;
+        case error.POSITION_UNAVAILABLE:
+          msg = "Lokasi tidak tersedia. Pastikan GPS aktif.";
+          break;
+        case error.TIMEOUT:
+          msg = "Waktu habis. Coba lagi di tempat terbuka.";
+          break;
+      }
+      alert(`${msg} (Code: ${error.code})`);
+      setLoading(false);
     };
 
     // Try High Accuracy first
@@ -138,12 +137,12 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
         // If High Accuracy fails (e.g. timeout), try Low Accuracy
         console.warn("High accuracy failed, trying low accuracy...", err);
         navigator.geolocation.getCurrentPosition(
-            successCallback, 
-            errorCallback, 
-            { enableHighAccuracy: false, timeout: 20000, maximumAge: 0 }
+          successCallback,
+          errorCallback,
+          { enableHighAccuracy: false, timeout: 20000, maximumAge: 0 },
         );
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
   };
 
@@ -252,7 +251,9 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
               className="rounded-full p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400"
               title="Refresh Lokasi"
             >
-              <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`h-5 w-5 ${loading ? "animate-spin" : ""}`}
+              />
             </button>
             <div
               className={`h-3 w-3 rounded-full ${distanceToTarget && targetLocation && distanceToTarget <= targetLocation.radius ? "bg-green-500 animate-pulse" : "bg-red-500"}`}

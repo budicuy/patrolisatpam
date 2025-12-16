@@ -11,7 +11,7 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect, useRef } from "react";
+import { Fragment, useEffect, useRef } from "react";
 
 // Fix icons
 // @ts-expect-error
@@ -110,11 +110,6 @@ export default function PatrolMap({
           <Marker position={currentPosition} icon={userIcon}>
             <Popup>Posisi Anda</Popup>
           </Marker>
-
-          {/* Only Center Once or manually! Removing auto-MapController for now 
-              or we could make it smarter. For now, let's trust the user to pan.
-              If we really want to center, we can add a button on the UI.
-          */}
           <MapController center={currentPosition} />
         </>
       )}
@@ -125,34 +120,40 @@ export default function PatrolMap({
         const isTarget = targetLocation?.id === loc.id;
 
         let icon = new L.Icon.Default();
-        if (isVisited) icon = visitedIcon;
-        else if (isTarget) icon = targetIcon;
+        let circleColor = "gray";
+
+        if (isVisited) {
+          icon = visitedIcon;
+          circleColor = "green";
+        } else if (isTarget) {
+          icon = targetIcon;
+          circleColor = "red";
+        }
 
         return (
-          <Marker
-            key={loc.id}
-            position={[loc.latitude, loc.longitude]}
-            icon={icon}
-          >
-            <Popup>
-              <b>{loc.name}</b>
-              <br />
-              Urutan: {loc.order}
-              <br />
-              Status: {isVisited ? "Sudah Diperiksa" : "Belum Diperiksa"}
-            </Popup>
-            {isTarget && (
-              <Circle
-                center={[loc.latitude, loc.longitude]}
-                radius={loc.radius || 5}
-                pathOptions={{
-                  color: "red",
-                  fillColor: "red",
-                  fillOpacity: 0.2,
-                }}
-              />
-            )}
-          </Marker>
+          <Fragment key={loc.id}>
+            <Marker position={[loc.latitude, loc.longitude]} icon={icon}>
+              <Popup>
+                <b>{loc.name}</b>
+                <br />
+                Urutan: {loc.order}
+                <br />
+                Radius: {loc.radius || 5}m
+                <br />
+                Status: {isVisited ? "Sudah Diperiksa" : "Belum Diperiksa"}
+              </Popup>
+            </Marker>
+            <Circle
+              center={[loc.latitude, loc.longitude]}
+              radius={loc.radius || 5}
+              pathOptions={{
+                color: circleColor,
+                fillColor: circleColor,
+                fillOpacity: 0.3,
+                weight: 3,
+              }}
+            />
+          </Fragment>
         );
       })}
     </MapContainer>
