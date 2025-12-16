@@ -51,7 +51,7 @@ export function Sidebar() {
                   isActive
                     ? "text-blue-700 dark:text-blue-300"
                     : "text-gray-400 group-hover:text-gray-500 dark:text-gray-400 dark:group-hover:text-gray-300",
-                  "mr-3 h-5 w-5 flex-shrink-0",
+                  "mr-3 h-5 w-5 shrink-0",
                 )}
                 aria-hidden="true"
               />

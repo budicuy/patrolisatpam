@@ -85,7 +85,7 @@ function MyLocationButton({
     // biome-ignore lint/a11y/noStaticElementInteractions: Overlay intentionally blocks map interactions
     <div
       ref={divRef}
-      className="absolute top-4 right-4 z-[999]"
+      className="absolute top-4 right-4 z-999"
       onClick={(e) => {
         e.stopPropagation();
         e.nativeEvent.stopImmediatePropagation();
