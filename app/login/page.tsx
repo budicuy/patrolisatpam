@@ -30,7 +30,8 @@ export default function LoginPage() {
         router.refresh();
         // Middleware will redirect based on role
       }
-    } catch (err) {
+    } catch (error) {
+      console.error(error);
       setError("Terjadi kesalahan sistem.");
     } finally {
       setLoading(false);

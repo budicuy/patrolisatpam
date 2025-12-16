@@ -44,16 +44,16 @@ export default async function HistoryPage() {
                     key={log.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
                   >
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">
                       {log.user.name}
                     </td>
-                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {log.location.name}
                     </td>
-                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {log.shift.name}
                     </td>
-                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {format(
                         new Date(log.checkInTime),
                         "dd MMMM yyyy, HH:mm:ss",

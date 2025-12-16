@@ -21,20 +21,20 @@ export default function LocationList({
         initialLocations.map((loc) => (
           <div
             key={loc.id}
-            className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50"
+            className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50 gap-4"
           >
-            <div className="flex items-start space-x-3">
-              <div className="mt-1 rounded-full bg-blue-100 p-2 dark:bg-blue-900/30">
+            <div className="flex items-start space-x-3 w-full">
+              <div className="mt-1 rounded-full bg-blue-100 p-2 dark:bg-blue-900/30 flex-shrink-0">
                 <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white">
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-gray-900 dark:text-white truncate">
                   {loc.name}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Urutan: {loc.order} | Radius: {loc.radius}m
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-400 truncate">
                   {loc.latitude}, {loc.longitude}
                 </p>
               </div>
@@ -44,7 +44,7 @@ export default function LocationList({
               type="button"
               onClick={() => startTransition(() => deleteLocation(loc.id))}
               disabled={isPending}
-              className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors dark:hover:bg-red-900/30"
+              className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors dark:hover:bg-red-900/30 self-end sm:self-center"
               title="Hapus Lokasi"
             >
               <Trash2 className="h-5 w-5" />

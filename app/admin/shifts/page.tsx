@@ -30,7 +30,7 @@ export default async function ShiftsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label
                     htmlFor="startTime"
@@ -85,14 +85,14 @@ export default async function ShiftsPage() {
                 shifts.map((shift) => (
                   <div
                     key={shift.id}
-                    className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50 gap-4"
                   >
-                    <div className="flex items-center space-x-4">
-                      <div className="rounded-full bg-orange-100 p-2 dark:bg-orange-900/30">
+                    <div className="flex items-center space-x-4 w-full">
+                      <div className="rounded-full bg-orange-100 p-2 dark:bg-orange-900/30 flex-shrink-0">
                         <Clock className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-white">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-gray-900 dark:text-white truncate">
                           {shift.name}
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -101,7 +101,7 @@ export default async function ShiftsPage() {
                       </div>
                     </div>
 
-                    <form action={deleteShift.bind(null, shift.id)}>
+                    <form action={deleteShift.bind(null, shift.id)} className="self-end sm:self-center">
                       <button
                         type="submit"
                         className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors dark:hover:bg-red-900/30"
