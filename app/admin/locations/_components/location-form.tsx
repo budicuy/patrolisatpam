@@ -22,21 +22,35 @@ export default function LocationForm() {
     lng: 106.8456,
   }); // Default Jakarta
 
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
   const handleSubmit = async (formData: FormData) => {
     setLoading(true);
+    setMessage(null);
+    
     // Add coordinates to formData
     formData.set("latitude", coordinates.lat.toString());
     formData.set("longitude", coordinates.lng.toString());
 
-    await createLocation(formData);
+    const result = await createLocation(formData);
+    
+    if (result?.error) {
+      setMessage({ type: "error", text: result.error });
+    } else {
+      setMessage({ type: "success", text: "Lokasi berhasil ditambahkan!" });
+      // Reset logic could go here if using a controlled form or ref
+    }
+    
     setLoading(false);
-    // Ideally reset form here
-    // reset();
-    // toast.success("Lokasi berhasil ditambahkan");
   };
 
   return (
     <form action={handleSubmit} className="space-y-4">
+      {message && (
+        <div className={`p-3 rounded-md text-sm ${message.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+          {message.text}
+        </div>
+      )}
       <div>
         <label
           htmlFor="name"

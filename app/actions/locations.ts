@@ -16,6 +16,14 @@ export async function createLocation(formData: FormData) {
   const radius = parseInt(formData.get("radius") as string) || 5;
   const order = parseInt(formData.get("order") as string);
 
+  const existing = await db.query.locations.findFirst({
+    where: eq(locations.order, order),
+  });
+
+  if (existing) {
+    return { error: "Urutan patroli sudah digunakan oleh lokasi lain." };
+  }
+
   await db.insert(locations).values({
     name,
     latitude,
@@ -25,6 +33,7 @@ export async function createLocation(formData: FormData) {
   });
 
   revalidatePath("/admin/locations");
+  return { success: true };
 }
 
 export async function deleteLocation(id: string) {
@@ -44,6 +53,17 @@ export async function updateLocation(id: string, formData: FormData) {
   const radius = parseInt(formData.get("radius") as string) || 5;
   const order = parseInt(formData.get("order") as string);
 
+  const existing = await db.query.locations.findFirst({
+    where: (locations, { and, ne, eq }) => and(
+      eq(locations.order, order),
+      ne(locations.id, id)
+    )
+  });
+
+  if (existing) {
+    return { error: "Urutan patroli sudah digunakan oleh lokasi lain." };
+  }
+
   await db
     .update(locations)
     .set({
@@ -56,4 +76,5 @@ export async function updateLocation(id: string, formData: FormData) {
     .where(eq(locations.id, id));
 
   revalidatePath("/admin/locations");
+  return { success: true };
 }

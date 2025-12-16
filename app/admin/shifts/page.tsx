@@ -88,7 +88,7 @@ export default async function ShiftsPage() {
                     className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50 gap-4"
                   >
                     <div className="flex items-center space-x-4 w-full">
-                      <div className="rounded-full bg-orange-100 p-2 dark:bg-orange-900/30 flex-shrink-0">
+                      <div className="rounded-full bg-orange-100 p-2 dark:bg-orange-900/30 shrink-0">
                         <Clock className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                       </div>
                       <div className="min-w-0 flex-1">
