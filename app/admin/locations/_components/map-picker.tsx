@@ -80,6 +80,11 @@ export default function MapPicker({
 }) {
   const [userPosition, setUserPosition] = useState<any>(null);
 
+  const handleUserLocationFound = (pos: L.LatLng) => {
+    setUserPosition(pos);
+    onPositionChange(pos);
+  };
+
   return (
     <MapContainer
       center={position || userPosition || [-6.2088, 106.8456]} // Default Jakarta
@@ -92,7 +97,7 @@ export default function MapPicker({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <LocationMarker position={position} onPositionChange={onPositionChange} />
-      <UserLocationMarker onUserLocationFound={setUserPosition} />
+      <UserLocationMarker onUserLocationFound={handleUserLocationFound} />
       <MyLocationButton />
     </MapContainer>
   );
