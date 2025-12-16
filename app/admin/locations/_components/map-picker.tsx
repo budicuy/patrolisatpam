@@ -1,9 +1,10 @@
 "use client";
 
-import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, TileLayer, Popup, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
+import { Locate } from "lucide-react";
 
 // Fix for default marker icon in Next.js
 // @ts-expect-error
@@ -17,6 +18,16 @@ L.Icon.Default.mergeOptions({
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
+const userIcon = L.divIcon({
+  className: "bg-transparent",
+  html: `<div class="relative flex h-6 w-6 items-center justify-center">
+    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+    <span class="relative inline-flex rounded-full h-4 w-4 bg-blue-500 border-2 border-white shadow-lg"></span>
+  </div>`,
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+});
+
 function LocationMarker({ position, onPositionChange }: any) {
   const map = useMapEvents({
     click(e) {
@@ -25,7 +36,32 @@ function LocationMarker({ position, onPositionChange }: any) {
     },
   });
 
-  return position === null ? null : <Marker position={position}></Marker>;
+  return position === null ? null : (
+    <Marker position={position} title="Lokasi Terpilih">
+      <Popup>Location Selected</Popup>
+    </Marker>
+  );
+}
+
+function UserLocationMarker({
+  onUserLocationFound,
+}: {
+  onUserLocationFound: (pos: L.LatLng) => void;
+}) {
+  const [position, setPosition] = useState<L.LatLng | null>(null);
+  const map = useMapEvents({
+    locationfound(e) {
+      setPosition(e.latlng);
+      onUserLocationFound(e.latlng);
+      map.flyTo(e.latlng, map.getZoom());
+    },
+  });
+
+  return position === null ? null : (
+    <Marker position={position} icon={userIcon} title="Lokasi Saya">
+      <Popup>Lokasi Saya</Popup>
+    </Marker>
+  );
 }
 
 export default function MapPicker({
@@ -35,9 +71,11 @@ export default function MapPicker({
   position: any;
   onPositionChange: (pos: any) => void;
 }) {
+  const [userPosition, setUserPosition] = useState<any>(null);
+
   return (
     <MapContainer
-      center={position}
+      center={position || userPosition || [-6.2088, 106.8456]} // Default Jakarta
       zoom={13}
       scrollWheelZoom={true}
       style={{ height: "100%", width: "100%" }}
@@ -47,20 +85,13 @@ export default function MapPicker({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <LocationMarker position={position} onPositionChange={onPositionChange} />
-      <MyLocationButton onPositionChange={onPositionChange} />
+      <UserLocationMarker onUserLocationFound={setUserPosition} />
+      <MyLocationButton />
     </MapContainer>
   );
 }
 
-import { Locate } from "lucide-react";
-import { useMap } from "react-leaflet";
-import { useRef } from "react";
-
-function MyLocationButton({
-  onPositionChange,
-}: {
-  onPositionChange: (pos: any) => void;
-}) {
+function MyLocationButton() {
   const map = useMap();
   const divRef = useRef<HTMLDivElement>(null);
 
@@ -74,10 +105,7 @@ function MyLocationButton({
   const handleLocate = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    map.locate().on("locationfound", (e) => {
-      onPositionChange(e.latlng);
-      map.flyTo(e.latlng, map.getZoom());
-    });
+    map.locate({ setView: true });
   };
 
   return (

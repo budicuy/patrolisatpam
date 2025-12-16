@@ -23,7 +23,7 @@ export default function LocationList({
             key={loc.id}
             className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50 gap-4"
           >
-            <div clas sName="flex items-start space-x-3 w-full">
+            <div className="flex items-start space-x-3 w-full">
               <div className="mt-1 rounded-full bg-blue-100 p-2 dark:bg-blue-900/30 shrink-0">
                 <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
