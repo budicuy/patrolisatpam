@@ -54,10 +54,8 @@ export async function updateLocation(id: string, formData: FormData) {
   const order = parseInt(formData.get("order") as string);
 
   const existing = await db.query.locations.findFirst({
-    where: (locations, { and, ne, eq }) => and(
-      eq(locations.order, order),
-      ne(locations.id, id)
-    )
+    where: (locations, { and, ne, eq }) =>
+      and(eq(locations.order, order), ne(locations.id, id)),
   });
 
   if (existing) {

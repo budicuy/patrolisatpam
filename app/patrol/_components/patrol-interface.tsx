@@ -45,26 +45,18 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
     }
   }, [locations, visitedLocations]);
 
-  // Geolocation Tracking
+  // Geolocation Tracking (Only restarts if patrolling status changes)
   useEffect(() => {
     if (!isPatrolling) return;
+
+    console.log("Starting GPS tracking...");
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude, accuracy } = position.coords;
+        console.log("GPS Update:", latitude, longitude, accuracy);
         setCurrentPosition({ lat: latitude, lng: longitude });
         setAccuracy(accuracy);
-
-        if (targetLocation) {
-          const dist = getDistance(
-            { latitude, longitude },
-            {
-              latitude: targetLocation.latitude,
-              longitude: targetLocation.longitude,
-            },
-          );
-          setDistanceToTarget(dist);
-        }
       },
       (error) => {
         console.error("Error getting location", error);
@@ -82,14 +74,32 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
           default:
             msg = "Terjadi kesalahan tidak diketahui pada GPS.";
         }
-        // Only alert if it's a critical failure not just a temporary timeout in watch
+        // Only alert if it's a critical failure
         if (error.code === error.PERMISSION_DENIED) alert(msg);
       },
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 10000 },
+      { 
+        enableHighAccuracy: true, 
+        timeout: 15000, 
+        maximumAge: 5000 
+      },
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [isPatrolling, targetLocation]);
+  }, [isPatrolling]);
+
+  // Calculate distance whenever position or target changes
+  useEffect(() => {
+    if (currentPosition && targetLocation) {
+      const dist = getDistance(
+        { latitude: currentPosition.lat, longitude: currentPosition.lng },
+        {
+          latitude: targetLocation.latitude,
+          longitude: targetLocation.longitude,
+        },
+      );
+      setDistanceToTarget(dist);
+    }
+  }, [currentPosition, targetLocation]);
 
   const handleManualRefresh = () => {
     setLoading(true);

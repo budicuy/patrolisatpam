@@ -1,10 +1,17 @@
 "use client";
 
-import { MapContainer, Marker, TileLayer, Popup, useMapEvents, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  Marker,
+  Popup,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect, useState, useRef } from "react";
 import { Locate } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 // Fix for default marker icon in Next.js
 // @ts-expect-error
