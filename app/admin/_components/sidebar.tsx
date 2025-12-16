@@ -7,6 +7,7 @@ import {
   LogOut,
   MapPin,
   ShieldCheck,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -17,6 +18,7 @@ const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { name: "Lokasi Gedung", href: "/admin/locations", icon: MapPin },
   { name: "Shift Jaga", href: "/admin/shifts", icon: Clock },
+  { name: "Kelola User", href: "/admin/users", icon: Users },
   { name: "Riwayat Patroli", href: "/admin/history", icon: History },
 ];
 
