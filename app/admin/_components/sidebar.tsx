@@ -24,7 +24,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="flex h-full min-h-screen w-64 flex-col bg-white shadow-lg dark:bg-gray-800">
+    <div className="flex h-full min-h-dvh w-64 flex-col bg-white shadow-lg dark:bg-gray-800">
       <div className="flex h-16 items-center justify-center border-b border-gray-200 px-4 dark:border-gray-700">
         <ShieldCheck className="mr-2 h-8 w-8 text-blue-600 dark:text-blue-400" />
         <span className="text-xl font-bold font-sans text-gray-900 dark:text-white">

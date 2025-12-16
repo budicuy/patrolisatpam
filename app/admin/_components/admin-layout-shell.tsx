@@ -4,7 +4,13 @@ import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Sidebar } from "./sidebar";
 
-export function AdminLayoutShell({ children }: { children: React.ReactNode }) {
+export function AdminLayoutShell({
+  children,
+  user,
+}: {
+  children: React.ReactNode;
+  user: any;
+}) {
   const [isOpen, setIsOpen] = useState(false);
 
   // Close sidebar when route changes
@@ -13,7 +19,7 @@ export function AdminLayoutShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative">
+    <div className="flex min-h-dvh bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative">
       {/* Desktop Sidebar */}
       <div className="hidden md:block fixed inset-y-0 left-0 z-50 w-64 h-full">
         <Sidebar />
@@ -42,7 +48,7 @@ export function AdminLayoutShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 md:pl-64 w-full flex flex-col min-h-screen transition-all duration-200">
+      <div className="flex-1 md:pl-64 w-full flex flex-col min-h-dvh transition-all duration-200">
         {/* Mobile Header */}
         <div className="sticky top-0 z-30 flex h-16 items-center border-b border-gray-200 bg-white px-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 md:hidden">
           <button
@@ -53,7 +59,7 @@ export function AdminLayoutShell({ children }: { children: React.ReactNode }) {
             {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
           <span className="ml-4 text-lg font-semibold text-gray-900 dark:text-white">
-            Patroli Bedas
+            {user?.name || "Patroli"}
           </span>
         </div>
 

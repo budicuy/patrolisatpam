@@ -180,7 +180,7 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
 
   if (!isPatrolling) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4 dark:bg-gray-900">
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-gray-50 p-4 dark:bg-gray-900">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl dark:bg-gray-800 text-center">
           <div className="mb-6 mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
             <MapPin className="h-10 w-10 text-blue-600 dark:text-blue-400" />
@@ -228,16 +228,16 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900 relative">
+    <div className="flex flex-col h-dvh bg-gray-100 dark:bg-gray-900 relative">
       {/* Top Status Bar */}
       <div className="bg-white p-4 shadow-md z-10 dark:bg-gray-800 absolute top-4 left-4 right-4 rounded-xl">
         <div className="flex justify-between items-center mb-2">
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-              Patroli Bedas
+              {user?.name || "Patroli"}
             </h2>
             <div className="flex items-center text-xs text-gray-500 space-x-2">
-              <span>{user.name}</span>
+              <span>{user.username}</span>
               <span>•</span>
               <span className={accuracy && accuracy <= 20 ? "text-green-600 font-medium" : "text-amber-600"}>
                 Akurasi: {accuracy ? `${Math.round(accuracy)}m` : "..."}
@@ -311,7 +311,6 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
         )}
       </div>
 
-      {/* Full Screen Map */}
       <div className="flex-1 z-0">
         <PatrolMap
           currentPosition={currentPosition}
