@@ -110,11 +110,7 @@ export default function PatrolMap({
           <Marker position={currentPosition} icon={userIcon}>
             <Popup>Posisi Anda</Popup>
           </Marker>
-          <Circle
-            center={currentPosition}
-            radius={20}
-            pathOptions={{ color: "blue", fillColor: "blue", fillOpacity: 0.1 }}
-          />
+
           {/* Only Center Once or manually! Removing auto-MapController for now 
               or we could make it smarter. For now, let's trust the user to pan.
               If we really want to center, we can add a button on the UI.
