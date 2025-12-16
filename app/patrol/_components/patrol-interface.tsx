@@ -66,8 +66,26 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
           setDistanceToTarget(dist);
         }
       },
-      (error) => console.error("Error getting location", error),
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
+      (error) => {
+        console.error("Error getting location", error);
+        let msg = "Gagal mengambil lokasi.";
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            msg = "Izin lokasi ditolak. Mohon aktifkan izin lokasi di browser.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            msg = "Informasi lokasi tidak tersedia. Coba di area terbuka.";
+            break;
+          case error.TIMEOUT:
+            msg = "Waktu permintaan lokasi habis. Sinyal GPS lemah.";
+            break;
+          default:
+            msg = "Terjadi kesalahan tidak diketahui pada GPS.";
+        }
+        // Only alert if it's a critical failure not just a temporary timeout in watch
+        if (error.code === error.PERMISSION_DENIED) alert(msg);
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 10000 },
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
@@ -75,30 +93,56 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
 
   const handleManualRefresh = () => {
     setLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
+    
+    const successCallback = (position: GeolocationPosition) => {
         const { latitude, longitude, accuracy } = position.coords;
         setCurrentPosition({ lat: latitude, lng: longitude });
         setAccuracy(accuracy);
-
+        
         if (targetLocation) {
-          const dist = getDistance(
-            { latitude, longitude },
-            {
-              latitude: targetLocation.latitude,
-              longitude: targetLocation.longitude,
-            },
-          );
-          setDistanceToTarget(dist);
+            const dist = getDistance(
+              { latitude, longitude },
+              {
+                latitude: targetLocation.latitude,
+                longitude: targetLocation.longitude,
+              },
+            );
+            setDistanceToTarget(dist);
         }
         setLoading(false);
-      },
-      (error) => {
+    };
+
+    const errorCallback = (error: GeolocationPositionError) => {
         console.error("Error forcing location update", error);
-        alert("Gagal memperbarui lokasi. Pastikan GPS aktif.");
+        let msg = "Gagal memperbarui lokasi.";
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            msg = "Izin lokasi ditolak. Cek pengaturan browser.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            msg = "Lokasi tidak tersedia. Pastikan GPS aktif.";
+            break;
+          case error.TIMEOUT:
+            msg = "Waktu habis. Coba lagi di tempat terbuka.";
+            break;
+        }
+        alert(`${msg} (Code: ${error.code})`);
         setLoading(false);
+    };
+
+    // Try High Accuracy first
+    navigator.geolocation.getCurrentPosition(
+      successCallback,
+      (err) => {
+        // If High Accuracy fails (e.g. timeout), try Low Accuracy
+        console.warn("High accuracy failed, trying low accuracy...", err);
+        navigator.geolocation.getCurrentPosition(
+            successCallback, 
+            errorCallback, 
+            { enableHighAccuracy: false, timeout: 20000, maximumAge: 0 }
+        );
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
