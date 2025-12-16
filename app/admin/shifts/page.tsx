@@ -1,221 +1,113 @@
-"use client";
+import { Clock, Plus, Trash2 } from "lucide-react";
+import { createShift, deleteShift, getShifts } from "@/app/actions/shifts";
 
-import { Edit, Plus, Trash } from "lucide-react";
-import { useEffect, useState } from "react";
-
-interface Shift {
-  id: string;
-  namaShift: string;
-  jamMulai: string;
-  jamSelesai: string;
-}
-
-export default function ShiftsPage() {
-  const [shifts, setShifts] = useState<Shift[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<Partial<Shift>>({});
-
-  useEffect(() => {
-    fetchShifts();
-  }, []);
-
-  const fetchShifts = async () => {
-    const res = await fetch("/api/shifts");
-    const data = await res.json();
-    setShifts(data);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const url = isEditing ? `/api/shifts/${formData.id}` : "/api/shifts";
-    const method = isEditing ? "PUT" : "POST";
-
-    await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
-
-    setIsModalOpen(false);
-    fetchShifts();
-    resetForm();
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure?")) {
-      await fetch(`/api/shifts/${id}`, { method: "DELETE" });
-      fetchShifts();
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({});
-    setIsEditing(false);
-  };
-
-  const openAddModal = () => {
-    resetForm();
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (shift: Shift) => {
-    setFormData(shift);
-    setIsEditing(true);
-    setIsModalOpen(true);
-  };
+export default async function ShiftsPage() {
+  const shifts = await getShifts();
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-          Data Shift
-        </h1>
-        <button
-          type="button"
-          onClick={openAddModal}
-          className="flex items-center rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          Tambah Shift
-        </button>
-      </div>
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold font-sans">Kelola Shift Jaga</h1>
 
-      <div className="overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-700">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
-                Nama Shift
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
-                Jam Mulai
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
-                Jam Selesai
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
-                Aksi
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
-            {shifts.map((shift) => (
-              <tr key={shift.id}>
-                <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
-                  {shift.namaShift}
-                </td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                  {shift.jamMulai}
-                </td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                  {shift.jamSelesai}
-                </td>
-                <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                  <button
-                    type="button"
-                    onClick={() => openEditModal(shift)}
-                    className="mr-2 text-blue-600 hover:text-blue-900 dark:text-blue-400"
-                  >
-                    <Edit className="h-5 w-5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(shift.id)}
-                    className="text-red-600 hover:text-red-900 dark:text-red-400"
-                  >
-                    <Trash className="h-5 w-5" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
-            <h2 className="mb-4 text-xl font-bold dark:text-white">
-              {isEditing ? "Edit Shift" : "Tambah Shift"}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        {/* Form */}
+        <div className="lg:col-span-1">
+          <div className="rounded-xl bg-white p-6 shadow-md dark:bg-gray-800">
+            <h2 className="mb-4 text-xl font-semibold">Tambah Shift Baru</h2>
+            <form action={createShift} className="space-y-4">
               <div>
-                <label
-                  htmlFor="namaShift"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Nama Shift
                 </label>
                 <input
-                  id="namaShift"
                   type="text"
+                  name="name"
+                  placeholder="Contoh: Shift Pagi"
                   required
-                  value={formData.namaShift || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, namaShift: e.target.value })
-                  }
-                  className="mt-1 block w-full rounded-md border border-gray-300 p-2 dark:border-gray-600 dark:bg-gray-700"
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label
-                    htmlFor="jamMulai"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Jam Mulai
                   </label>
                   <input
-                    id="jamMulai"
                     type="time"
+                    name="startTime"
                     required
-                    value={formData.jamMulai || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, jamMulai: e.target.value })
-                    }
-                    className="mt-1 block w-full rounded-md border border-gray-300 p-2 dark:border-gray-600 dark:bg-gray-700"
+                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label
-                    htmlFor="jamSelesai"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Jam Selesai
                   </label>
                   <input
-                    id="jamSelesai"
                     type="time"
+                    name="endTime"
                     required
-                    value={formData.jamSelesai || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, jamSelesai: e.target.value })
-                    }
-                    className="mt-1 block w-full rounded-md border border-gray-300 p-2 dark:border-gray-600 dark:bg-gray-700"
+                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-2 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="rounded-lg bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-                >
-                  Simpan
-                </button>
-              </div>
+              <button
+                type="submit"
+                className="flex w-full items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Simpan Shift
+              </button>
             </form>
           </div>
         </div>
-      )}
+
+        {/* List */}
+        <div className="lg:col-span-2">
+          <div className="rounded-xl bg-white p-6 shadow-md dark:bg-gray-800">
+            <h2 className="mb-4 text-xl font-semibold">Daftar Shift</h2>
+            <div className="space-y-4">
+              {shifts.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">
+                  Belum ada shift yang terdaftar.
+                </p>
+              ) : (
+                shifts.map((shift) => (
+                  <div
+                    key={shift.id}
+                    className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="rounded-full bg-orange-100 p-2 dark:bg-orange-900/30">
+                        <Clock className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">
+                          {shift.name}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {shift.startTime} - {shift.endTime}
+                        </p>
+                      </div>
+                    </div>
+
+                    <form action={deleteShift.bind(null, shift.id)}>
+                      <button
+                        type="submit"
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors dark:hover:bg-red-900/30"
+                        title="Hapus Shift"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </form>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
