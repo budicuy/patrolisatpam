@@ -41,6 +41,7 @@ export default function LocationList({
             </div>
 
             <button
+              type="button"
               onClick={() => startTransition(() => deleteLocation(loc.id))}
               disabled={isPending}
               className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors dark:hover:bg-red-900/30"

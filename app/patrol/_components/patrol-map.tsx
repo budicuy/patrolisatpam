@@ -7,10 +7,11 @@ import {
   Polyline,
   Popup,
   TileLayer,
+  useMapEvents,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 // Fix icons
 // @ts-expect-error
@@ -62,16 +63,17 @@ function MapController({ center }: { center: { lat: number; lng: number } }) {
     // Optional: Keep map centered on user?
   });
 
+  const hasCentered = useRef(false);
+
   useEffect(() => {
-    if (center) {
+    if (center && !hasCentered.current) {
       map.flyTo(center, 16);
+      hasCentered.current = true;
     }
   }, [center, map]);
 
   return null;
 }
-
-import { useMapEvents } from "react-leaflet";
 
 export default function PatrolMap({
   currentPosition,
@@ -113,6 +115,10 @@ export default function PatrolMap({
             radius={20}
             pathOptions={{ color: "blue", fillColor: "blue", fillOpacity: 0.1 }}
           />
+          {/* Only Center Once or manually! Removing auto-MapController for now 
+              or we could make it smarter. For now, let's trust the user to pan.
+              If we really want to center, we can add a button on the UI.
+          */}
           <MapController center={currentPosition} />
         </>
       )}

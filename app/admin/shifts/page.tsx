@@ -15,7 +15,10 @@ export default async function ShiftsPage() {
             <h2 className="mb-4 text-xl font-semibold">Tambah Shift Baru</h2>
             <form action={createShift} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Nama Shift
                 </label>
                 <input
@@ -29,7 +32,10 @@ export default async function ShiftsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="startTime"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     Jam Mulai
                   </label>
                   <input
@@ -40,7 +46,10 @@ export default async function ShiftsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="endTime"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     Jam Selesai
                   </label>
                   <input

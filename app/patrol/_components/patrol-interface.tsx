@@ -2,8 +2,8 @@
 
 import { getDistance } from "geolib";
 import { CheckCircle, Loader2, LogOut, MapPin } from "lucide-react";
-import { signOut } from "next-auth/react";
 import dynamic from "next/dynamic";
+import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { checkInPatrol } from "@/app/actions/patrol";
 
@@ -29,6 +29,8 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
   const [selectedShift, setSelectedShift] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
+  const [accuracy, setAccuracy] = useState<number | null>(null);
+
   // Initial Logic: Find first unvisited location based on order
   useEffect(() => {
     if (locations.length > 0) {
@@ -49,8 +51,9 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        const { latitude, longitude } = position.coords;
+        const { latitude, longitude, accuracy } = position.coords;
         setCurrentPosition({ lat: latitude, lng: longitude });
+        setAccuracy(accuracy);
 
         if (targetLocation) {
           const dist = getDistance(
@@ -70,6 +73,35 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
     return () => navigator.geolocation.clearWatch(watchId);
   }, [isPatrolling, targetLocation]);
 
+  const handleManualRefresh = () => {
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        setCurrentPosition({ lat: latitude, lng: longitude });
+        setAccuracy(accuracy);
+
+        if (targetLocation) {
+          const dist = getDistance(
+            { latitude, longitude },
+            {
+              latitude: targetLocation.latitude,
+              longitude: targetLocation.longitude,
+            },
+          );
+          setDistanceToTarget(dist);
+        }
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error forcing location update", error);
+        alert("Gagal memperbarui lokasi. Pastikan GPS aktif.");
+        setLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
+  };
+
   const handleStartPatrol = () => {
     if (!selectedShift) {
       alert("Pilih shift terlebih dahulu!");
@@ -83,7 +115,9 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
 
     // Radius Validation (Allowing slight tolerance, e.g. 5 meters as requested, maybe 10 for GPS drift safety)
     if (distanceToTarget > (targetLocation.radius || 5)) {
-      alert("Anda belum berada dalam radius lokasi!");
+      alert(
+        `Anda belum berada dalam radius lokasi! Jarak: ${distanceToTarget}m`,
+      );
       return;
     }
 
@@ -128,7 +162,7 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
           </select>
 
           <button
-          type="button"
+            type="button"
             onClick={handleStartPatrol}
             disabled={!selectedShift}
             className="w-full rounded-xl bg-blue-600 px-6 py-4 text-lg font-bold text-white transition-all hover:bg-blue-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -158,14 +192,28 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
               Patroli Bedas
             </h2>
-            <p className="text-sm text-gray-500">{user.name}</p>
+            <div className="flex items-center text-xs text-gray-500 space-x-2">
+              <span>{user.name}</span>
+              <span>•</span>
+              <span>
+                Akurasi: {accuracy ? `${Math.round(accuracy)}m` : "..."}
+              </span>
+            </div>
           </div>
           <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={handleManualRefresh}
+              className="rounded-full p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400"
+              title="Refresh Lokasi"
+            >
+              <Loader2 className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+            </button>
             <div
               className={`h-3 w-3 rounded-full ${distanceToTarget && targetLocation && distanceToTarget <= targetLocation.radius ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
             ></div>
             <span className="text-xs font-mono">
-              {distanceToTarget ? `${distanceToTarget}m` : "Mencari GPS..."}
+              {distanceToTarget ? `${distanceToTarget}m` : "GPS..."}
             </span>
             <button
               type="button"
@@ -182,12 +230,13 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
             <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1 dark:text-blue-400">
               Tujuan Berikutnya
             </p>
+
             <div className="flex justify-between items-center">
               <span className="font-semibold text-gray-800 dark:text-gray-200">
                 {targetLocation.name}
               </span>
               <button
-              type="button"
+                type="button"
                 onClick={handleCheckIn}
                 disabled={
                   !distanceToTarget ||
