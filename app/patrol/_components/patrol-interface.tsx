@@ -1,11 +1,21 @@
 "use client";
 
+import { formatDistanceToNow } from "date-fns";
+import { id as dateFnsId } from "date-fns/locale";
 import { getDistance } from "geolib";
-import { CheckCircle, Loader2, LogOut, MapPin, RefreshCw } from "lucide-react";
+import {
+  CheckCircle,
+  Clock,
+  Loader2,
+  LogOut,
+  Map as MapIcon,
+  MapPin,
+  RefreshCw,
+} from "lucide-react";
 import dynamic from "next/dynamic";
 import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { checkInPatrol } from "@/app/actions/patrol";
+import { submitPatrolReport } from "@/app/actions/patrol";
 
 // Dynamic import for Map to avoid SSR issues
 const PatrolMap = dynamic(() => import("./patrol-map"), {
@@ -17,19 +27,57 @@ const PatrolMap = dynamic(() => import("./patrol-map"), {
   ),
 });
 
-export default function PatrolInterface({ user, locations, shifts }: any) {
+interface User {
+  id: string;
+  name: string;
+  username: string;
+}
+
+interface Location {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  radius: number;
+  order: number;
+}
+
+interface Shift {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+}
+
+export default function PatrolInterface({
+  user,
+  locations,
+  shifts,
+}: {
+  user: User;
+  locations: Location[];
+  shifts: Shift[];
+}) {
   const [isPatrolling, setIsPatrolling] = useState(false);
   const [currentPosition, setCurrentPosition] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
-  const [targetLocation, setTargetLocation] = useState<any>(null); // The next location to visit
+  const [targetLocation, setTargetLocation] = useState<Location | null>(null); // The next location to visit
   const [visitedLocations, setVisitedLocations] = useState<string[]>([]);
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null);
   const [selectedShift, setSelectedShift] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   const [accuracy, setAccuracy] = useState<number | null>(null);
+
+  // Batch Submission State
+  const [logs, setLogs] = useState<{ locationId: string; checkInTime: Date }[]>(
+    [],
+  );
+  const [patrolStartTime, setPatrolStartTime] = useState<Date | null>(null);
+  const [showSummary, setShowSummary] = useState(false);
+  const [patrolEndTime, setPatrolEndTime] = useState<Date | null>(null);
 
   // Initial Logic: Find first unvisited location based on order
   useEffect(() => {
@@ -151,10 +199,13 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
       alert("Pilih shift terlebih dahulu!");
       return;
     }
+    setPatrolStartTime(new Date());
+    setLogs([]); // Reset logs
+    setVisitedLocations([]); // Reset visited
     setIsPatrolling(true);
   };
 
-  const handleCheckIn = async () => {
+  const handleCheckIn = () => {
     if (!targetLocation || !distanceToTarget) return;
 
     // Radius Validation (Allowing slight tolerance, e.g. 5 meters as requested, maybe 10 for GPS drift safety)
@@ -165,17 +216,59 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
       return;
     }
 
+    // Add to local logs instead of submitting immediately
+    const newLog = {
+      locationId: targetLocation.id,
+      checkInTime: new Date(),
+    };
+
+    setLogs((prev) => [...prev, newLog]);
+    setVisitedLocations((prev) => [...prev, targetLocation.id]);
+    alert("Check-in berhasil! Lanjutkan ke titik berikutnya.");
+  };
+
+  const handleFinishPatrol = async () => {
+    const confirmed = confirm(
+      "Apakah Anda yakin ingin mengakhiri patroli dan menyimpan laporan?",
+    );
+    if (!confirmed) return;
+
     setLoading(true);
     try {
-      await checkInPatrol(user.id, selectedShift, targetLocation.id);
-      setVisitedLocations((prev) => [...prev, targetLocation.id]);
-      alert("Check-in berhasil!");
+      const result = await submitPatrolReport(user.id, selectedShift, logs);
+
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
+
+      setPatrolEndTime(new Date());
+      setShowSummary(true);
+      // setIsPatrolling(false); // keep true to show modal overlay
     } catch (error) {
       console.error(error);
-      alert("Gagal melakukan check-in.");
+      alert("Terjadi kesalahan saat menyimpan laporan.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const closeSummary = () => {
+    setShowSummary(false);
+    setIsPatrolling(false);
+    setPatrolStartTime(null);
+    setPatrolEndTime(null);
+    setLogs([]);
+    setVisitedLocations([]);
+    setSelectedShift("");
+  };
+
+  const getPatrolDuration = () => {
+    if (!patrolStartTime || !patrolEndTime) return "-";
+    return formatDistanceToNow(patrolStartTime, {
+      addSuffix: false,
+      locale: dateFnsId,
+    });
   };
 
   if (!isPatrolling) {
@@ -198,7 +291,7 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
             className="mb-8 block w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           >
             <option value="">-- Pilih Shift --</option>
-            {shifts.map((s: any) => (
+            {shifts.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name} ({s.startTime} - {s.endTime})
               </option>
@@ -239,7 +332,13 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
             <div className="flex items-center text-xs text-gray-500 space-x-2">
               <span>{user.username}</span>
               <span>•</span>
-              <span className={accuracy && accuracy <= 20 ? "text-green-600 font-medium" : "text-amber-600"}>
+              <span
+                className={
+                  accuracy && accuracy <= 20
+                    ? "text-green-600 font-medium"
+                    : "text-amber-600"
+                }
+              >
                 Akurasi: {accuracy ? `${Math.round(accuracy)}m` : "..."}
               </span>
             </div>
@@ -259,8 +358,10 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
               className={`h-3 w-3 rounded-full ${currentPosition ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
             ></div>
             <span className="text-xs font-mono">
-              {currentPosition 
-                ? (distanceToTarget !== null ? `${Math.round(distanceToTarget)}m` : "Standby") 
+              {currentPosition
+                ? distanceToTarget !== null
+                  ? `${Math.round(distanceToTarget)}m`
+                  : "Standby"
                 : "GPS..."}
             </span>
             <button
@@ -293,20 +394,31 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
                 }
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 disabled:bg-gray-400 transition-all shadow-sm active:scale-95"
               >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "CHECK IN"
-                )}
+                CHECK IN
               </button>
             </div>
           </div>
         ) : (
-          <div className="bg-green-50 p-3 rounded-lg border border-green-100 text-center">
-            <p className="text-green-700 font-bold flex items-center justify-center">
+          <div className="bg-green-50 p-3 rounded-lg border border-green-100 text-center dark:bg-green-900/20 dark:border-green-800">
+            <p className="text-green-700 font-bold flex items-center justify-center dark:text-green-400 mb-2">
               <CheckCircle className="mr-2 h-5 w-5" />
-              Patroli Selesai!
+              Semua Lokasi Terkunjungi!
             </p>
+            <button
+              type="button"
+              onClick={handleFinishPatrol}
+              disabled={loading}
+              className="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Menyimpan...
+                </span>
+              ) : (
+                "SELESAI & SIMPAN LAPORAN"
+              )}
+            </button>
           </div>
         )}
       </div>
@@ -319,6 +431,79 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
           visitedLocations={visitedLocations}
         />
       </div>
+
+      {/* Summary Modal */}
+      {showSummary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 dark:bg-gray-800 animate-in fade-in zoom-in duration-300">
+            <div className="text-center mb-6">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 mb-4 dark:bg-green-900/30">
+                <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Patroli Selesai!
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400">
+                Laporan berhasil disimpan.
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-4 mb-6 dark:bg-gray-700/50 space-y-3">
+              <div className="flex justify-between items-center border-b border-gray-200 pb-2 dark:border-gray-600">
+                <div className="flex items-center text-gray-600 dark:text-gray-300">
+                  <Clock className="h-4 w-4 mr-2" />
+                  <span>Durasi Patroli</span>
+                </div>
+                <span className="font-bold text-gray-900 dark:text-white">
+                  {getPatrolDuration()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center text-gray-600 dark:text-gray-300">
+                  <MapIcon className="h-4 w-4 mr-2" />
+                  <span>Total Lokasi</span>
+                </div>
+                <span className="font-bold text-gray-900 dark:text-white">
+                  {logs.length} Titik
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2 mb-6 max-h-48 overflow-y-auto">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                Riwayat Kunjungan
+              </p>
+              {logs.map((log) => {
+                const loc = locations.find((l) => l.id === log.locationId);
+                return (
+                  <div
+                    key={log.checkInTime.getTime()}
+                    className="flex justify-between text-sm py-1 border-b border-gray-100 last:border-0 dark:border-gray-700"
+                  >
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {loc?.name || "Unknown"}
+                    </span>
+                    <span className="text-gray-500 font-mono text-xs">
+                      {log.checkInTime.toLocaleTimeString("id-ID", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={closeSummary}
+              className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
+            >
+              Tutup & Kembali
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import PatrolInterface from "./_components/patrol-interface";
 
 export default async function PatrolPage() {
   const session = await auth();
-  if (!session) redirect("/login");
+  if (!session?.user) redirect("/login");
 
   const locations = await getLocations();
   const shifts = await getShifts();
@@ -14,7 +14,7 @@ export default async function PatrolPage() {
   // Pass user info to client component
   return (
     <PatrolInterface
-      user={session.user}
+      user={session.user as any}
       locations={locations}
       shifts={shifts}
     />

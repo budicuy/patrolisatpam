@@ -9,7 +9,7 @@ export function AdminLayoutShell({
   user,
 }: {
   children: React.ReactNode;
-  user: any;
+  user: { name?: string | null };
 }) {
   const [isOpen, setIsOpen] = useState(false);
 

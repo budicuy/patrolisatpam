@@ -74,12 +74,28 @@ function MapController({ center }: { center: { lat: number; lng: number } }) {
   return null;
 }
 
+interface Location {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  radius: number;
+  order: number;
+}
+
+interface PatrolMapProps {
+  currentPosition: { lat: number; lng: number } | null;
+  targetLocation: Location | null;
+  locations: Location[];
+  visitedLocations: string[];
+}
+
 export default function PatrolMap({
   currentPosition,
   targetLocation,
   locations,
   visitedLocations,
-}: any) {
+}: PatrolMapProps) {
   // Sort locations to draw path
   const sortedLocations = [...locations].sort((a, b) => a.order - b.order);
   const pathPositions = sortedLocations.map((l) => [l.latitude, l.longitude]);
