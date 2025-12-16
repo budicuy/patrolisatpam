@@ -45,18 +45,26 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
     }
   }, [locations, visitedLocations]);
 
-  // Geolocation Tracking (Only restarts if patrolling status changes)
+  // Geolocation Tracking
   useEffect(() => {
     if (!isPatrolling) return;
-
-    console.log("Starting GPS tracking...");
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude, accuracy } = position.coords;
-        console.log("GPS Update:", latitude, longitude, accuracy);
         setCurrentPosition({ lat: latitude, lng: longitude });
         setAccuracy(accuracy);
+
+        if (targetLocation) {
+          const dist = getDistance(
+            { latitude, longitude },
+            {
+              latitude: targetLocation.latitude,
+              longitude: targetLocation.longitude,
+            },
+          );
+          setDistanceToTarget(dist);
+        }
       },
       (error) => {
         console.error("Error getting location", error);
@@ -74,32 +82,14 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
           default:
             msg = "Terjadi kesalahan tidak diketahui pada GPS.";
         }
-        // Only alert if it's a critical failure
+        // Only alert if it's a critical failure not just a temporary timeout in watch
         if (error.code === error.PERMISSION_DENIED) alert(msg);
       },
-      { 
-        enableHighAccuracy: true, 
-        timeout: 15000, 
-        maximumAge: 5000 
-      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [isPatrolling]);
-
-  // Calculate distance whenever position or target changes
-  useEffect(() => {
-    if (currentPosition && targetLocation) {
-      const dist = getDistance(
-        { latitude: currentPosition.lat, longitude: currentPosition.lng },
-        {
-          latitude: targetLocation.latitude,
-          longitude: targetLocation.longitude,
-        },
-      );
-      setDistanceToTarget(dist);
-    }
-  }, [currentPosition, targetLocation]);
+  }, [isPatrolling, targetLocation]);
 
   const handleManualRefresh = () => {
     setLoading(true);
@@ -149,10 +139,10 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
         navigator.geolocation.getCurrentPosition(
           successCallback,
           errorCallback,
-          { enableHighAccuracy: false, timeout: 20000, maximumAge: 0 },
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 },
         );
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
     );
   };
 
@@ -249,7 +239,7 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
             <div className="flex items-center text-xs text-gray-500 space-x-2">
               <span>{user.name}</span>
               <span>•</span>
-              <span>
+              <span className={accuracy && accuracy <= 20 ? "text-green-600 font-medium" : "text-amber-600"}>
                 Akurasi: {accuracy ? `${Math.round(accuracy)}m` : "..."}
               </span>
             </div>
@@ -266,10 +256,12 @@ export default function PatrolInterface({ user, locations, shifts }: any) {
               />
             </button>
             <div
-              className={`h-3 w-3 rounded-full ${distanceToTarget && targetLocation && distanceToTarget <= targetLocation.radius ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
+              className={`h-3 w-3 rounded-full ${currentPosition ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
             ></div>
             <span className="text-xs font-mono">
-              {distanceToTarget ? `${distanceToTarget}m` : "GPS..."}
+              {currentPosition 
+                ? (distanceToTarget !== null ? `${Math.round(distanceToTarget)}m` : "Standby") 
+                : "GPS..."}
             </span>
             <button
               type="button"
