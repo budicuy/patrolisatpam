@@ -10,15 +10,16 @@ import {
   Clock,
   Loader2,
   LogOut,
-  Map as MapIcon,
   MapPin,
   RefreshCw,
   X,
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import Image from "next/image"; // Added Import
 import { signOut } from "next-auth/react";
-import { useEffect, useState } from "react";
-import { submitPatrolReport } from "@/app/actions/patrol";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { checkInPatrol, getPatrolProgress } from "@/app/actions/patrol";
 import { uploadImage } from "@/app/actions/upload";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,6 +74,7 @@ export default function PatrolInterface({
   locations: Location[];
   shifts: Shift[];
 }) {
+  const router = useRouter();
   const [isPatrolling, setIsPatrolling] = useState(false);
   const [currentPosition, setCurrentPosition] = useState<{
     lat: number;
@@ -86,100 +88,91 @@ export default function PatrolInterface({
 
   const [accuracy, setAccuracy] = useState<number | null>(null);
 
-  // Batch Submission State
-  const [logs, setLogs] = useState<
-    {
-      locationId: string;
-      checkInTime: Date;
-      status: "aman" | "tidak_aman";
-      notes?: string;
-      imageData?: string;
-      tempImageFile?: File; // Temporary file for deferred upload
-    }[]
-  >([]);
+  // Fetch Patrol Progress (Shared State)
+  const fetchProgress = useCallback(async () => {
+    if (!selectedShift) return;
+    // Don't set global loading here to avoid interrupting UI flow, just background update
+    try {
+      const { visitedLocationIds } = await getPatrolProgress(selectedShift);
+      setVisitedLocations(visitedLocationIds);
+    } catch (error) {
+      console.error("Failed to fetch progress", error);
+    }
+  }, [selectedShift]);
+
+  useEffect(() => {
+    if (isPatrolling && selectedShift) {
+      fetchProgress();
+    }
+  }, [isPatrolling, selectedShift, fetchProgress]);
+
 
   const confirmCheckIn = async () => {
-    if (!targetLocation) return;
+    if (!targetLocation || !selectedShift) return;
 
     if (checkInStatus === "tidak_aman" && !checkInNote) {
       alert("Mohon isi alasan kondisi tidak aman.");
       return;
     }
 
-    // Defer upload: use preview URL for local display if needed, but store File for later
-    const newLog = {
-      locationId: targetLocation.id,
-      checkInTime: new Date(),
-      status: checkInStatus,
-      notes: checkInNote || undefined,
-      imageData: checkInImagePreview || undefined, // Use local blob link temporarily or empty
-      tempImageFile: (checkInImageFile as File) || undefined, // Store file for later upload
-    };
+    setLoading(true);
+    try {
+        let finalImageUrl = undefined;
 
-    setLogs((prev) => [...prev, newLog]);
-    setVisitedLocations((prev) => [...prev, targetLocation.id]);
-    setShowCheckInModal(false);
+        // 1. Upload Image Immediate if exists
+        if (checkInImageFile) {
+            const formData = new FormData();
+            formData.append("file", checkInImageFile);
+            try {
+                finalImageUrl = await uploadImage(formData);
+            } catch (error) {
+                console.error("Upload image failed", error);
+                alert("Gagal upload foto, mencoba simpan data tanpa foto...");
+            }
+        }
+
+        // 2. Immediate DB Insert
+        const result = await checkInPatrol(
+            user.id,
+            selectedShift,
+            targetLocation.id,
+            checkInStatus,
+            checkInNote,
+            finalImageUrl
+        );
+
+        if (result.error) {
+            alert(result.error);
+            return;
+        }
+
+        // 3. Update Local State (Optimistic)
+        setVisitedLocations((prev) => [...prev, targetLocation.id]);
+        setShowCheckInModal(false);
+        
+        // Refresh progress to ensure sync
+        fetchProgress(); 
+    } catch (error: unknown) {
+        console.error("Check in error", error);
+        let msg = "Gagal check in.";
+        if(error instanceof Error) msg = error.message;
+        alert(msg);
+    } finally {
+        setLoading(false);
+    }
   };
 
+  // Just finish the session locally, logic is already saved in DB
   const handleFinishPatrol = async () => {
     const confirmed = confirm(
-      "Apakah Anda yakin ingin mengakhiri patroli dan menyimpan laporan?",
+      "Apakah Anda yakin ingin mengakhiri sesi patroli? Semua progress sudah tersimpan.",
     );
     if (!confirmed) return;
 
-    setLoading(true);
-    try {
-      // 1. Process deferred uploads
-      const processedLogs = await Promise.all(
-        logs.map(async (log) => {
-          if (log.status === 'tidak_aman' && log.tempImageFile) {
-            const formData = new FormData();
-            formData.append("file", log.tempImageFile);
-            
-            try {
-               const uploadedUrl = await uploadImage(formData);
-               // Return new log object with real URL and without temp file
-               return {
-                 locationId: log.locationId,
-                 checkInTime: log.checkInTime,
-                 status: log.status,
-                 notes: log.notes,
-                 imageData: uploadedUrl
-               };
-            } catch (upErr) {
-               console.error("Upload failed for log:", log, upErr);
-               throw new Error("Gagal mengupload foto bukti. Silakan coba lagi.");
-            }
-          }
-          
-          // Return as is (without tempImageFile for server safety)
-          return {
-            locationId: log.locationId,
-            checkInTime: log.checkInTime,
-            status: log.status,
-            notes: log.notes,
-            imageData: log.status === 'aman' ? undefined : log.imageData // Careful: if tidak_aman but no file, keep notes etc.
-          };
-        })
-      );
-
-      // 2. Submit Final Report with generic types (removing tempImageFile property effectively)
-      const result = await submitPatrolReport(user.id, selectedShift, processedLogs);
-
-      if (result.error) {
-        alert(result.error);
-        return;
-      }
-
-      setPatrolEndTime(new Date());
-      setShowSummary(true);
-    } catch (error: any) {
-      console.error(error);
-      alert(error.message || "Terjadi kesalahan saat menyimpan laporan.");
-    } finally {
-      setLoading(false);
-    }
+    setPatrolEndTime(new Date());
+    setShowSummary(true);
   };
+
   const [patrolStartTime, setPatrolStartTime] = useState<Date | null>(null);
   const [showSummary, setShowSummary] = useState(false);
   const [patrolEndTime, setPatrolEndTime] = useState<Date | null>(null);
@@ -235,22 +228,10 @@ export default function PatrolInterface({
       },
       (error) => {
         console.error("Error getting location", error);
-        let msg = "Gagal mengambil lokasi.";
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            msg = "Izin lokasi ditolak. Mohon aktifkan izin lokasi di browser.";
-            break;
-          case error.POSITION_UNAVAILABLE:
-            msg = "Informasi lokasi tidak tersedia. Coba di area terbuka.";
-            break;
-          case error.TIMEOUT:
-            msg = "Waktu permintaan lokasi habis. Sinyal GPS lemah.";
-            break;
-          default:
-            msg = "Terjadi kesalahan tidak diketahui pada GPS.";
+        // Suppress repetitive alerts
+        if (error.code === error.PERMISSION_DENIED) {
+             // alert("Izin lokasi ditolak."); 
         }
-        // Only alert if it's a critical failure not just a temporary timeout in watch
-        if (error.code === error.PERMISSION_DENIED) alert(msg);
       },
       { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
     );
@@ -260,57 +241,31 @@ export default function PatrolInterface({
 
   const handleManualRefresh = () => {
     setLoading(true);
-
-    const successCallback = (position: GeolocationPosition) => {
-      const { latitude, longitude, accuracy } = position.coords;
-      setCurrentPosition({ lat: latitude, lng: longitude });
-      setAccuracy(accuracy);
-
-      if (targetLocation) {
-        const dist = getDistance(
-          { latitude, longitude },
-          {
-            latitude: targetLocation.latitude,
-            longitude: targetLocation.longitude,
-          },
-        );
-        setDistanceToTarget(dist);
-      }
-      setLoading(false);
-    };
-
-    const errorCallback = (error: GeolocationPositionError) => {
-      console.error("Error forcing location update", error);
-      let msg = "Gagal memperbarui lokasi.";
-      switch (error.code) {
-        case error.PERMISSION_DENIED:
-          msg = "Izin lokasi ditolak. Cek pengaturan browser.";
-          break;
-        case error.POSITION_UNAVAILABLE:
-          msg = "Lokasi tidak tersedia. Pastikan GPS aktif.";
-          break;
-        case error.TIMEOUT:
-          msg = "Waktu habis. Coba lagi di tempat terbuka.";
-          break;
-      }
-      alert(`${msg} (Code: ${error.code})`);
-      setLoading(false);
-    };
-
-    // Try High Accuracy first
-    navigator.geolocation.getCurrentPosition(
-      successCallback,
-      (err) => {
-        // If High Accuracy fails (e.g. timeout), try Low Accuracy
-        console.warn("High accuracy failed, trying low accuracy...", err);
+    // Sync patrol progress
+    fetchProgress().then(() => {
+        // Then sync GPS
         navigator.geolocation.getCurrentPosition(
-          successCallback,
-          errorCallback,
-          { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 },
+            (position) => {
+                const { latitude, longitude, accuracy } = position.coords;
+                setCurrentPosition({ lat: latitude, lng: longitude });
+                setAccuracy(accuracy);
+                if (targetLocation) {
+                    const dist = getDistance(
+                        { latitude, longitude },
+                        { latitude: targetLocation.latitude, longitude: targetLocation.longitude }
+                    );
+                    setDistanceToTarget(dist);
+                }
+                setLoading(false);
+            },
+            (error) => {
+                console.error("GPS Refresh Error", error);
+                alert("Gagal refresh GPS. Cek sinyal.");
+                setLoading(false);
+            },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
         );
-      },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
-    );
+    });
   };
 
   const handleStartPatrol = () => {
@@ -319,9 +274,9 @@ export default function PatrolInterface({
       return;
     }
     setPatrolStartTime(new Date());
-    setLogs([]); // Reset logs
-    setVisitedLocations([]); // Reset visited
+    setVisitedLocations([]); // Reset local first, then fetch
     setIsPatrolling(true);
+    // Fetch progress will trigger via useEffect
   };
 
   const handleCheckInClick = () => {
@@ -336,7 +291,6 @@ export default function PatrolInterface({
     }
 
     // Open Modal
-    // Open Modal
     setCheckInStatus("aman");
     setCheckInNote("");
     setCheckInImagePreview(null);
@@ -348,7 +302,6 @@ export default function PatrolInterface({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check original size to warn only extreme cases (allow compression to fix it)
     if (file.size > 10 * 1024 * 1024) {
       alert("Ukuran file terlalu besar (max 10MB input)");
       return;
@@ -357,55 +310,35 @@ export default function PatrolInterface({
     setIsCompressing(true);
     try {
       let fileToProcess = file;
-
-      // Only compress if larger than 100KB
       if (file.size > 100 * 1024) {
         const options = {
-            maxSizeMB: 0.1, // 100KB target
+            maxSizeMB: 0.1, 
             maxWidthOrHeight: 1200,
             useWebWorker: true,
         };
         try {
             fileToProcess = await imageCompression(file, options);
         } catch (cErr) {
-            console.error("Compression failed", cErr);
-            alert("Gagal mengkompres gambar. Menggunakan file asli.");
+            console.error(cErr);
         }
       }
-
-      // Final Check post-compression
-      // Note: imageCompression returns a Blob/File.
-      if (fileToProcess.size > 150 * 1024) {
-          // Allow slight tolerance (150KB) or strictly enforce? User said 100kb.
-          // Let's warn but proceed or fail?
-          // User: "maksimal 100kb saja ketika di upload"
-          if (fileToProcess.size > 105 * 1024) { // strict 100kb + epsilon
-             alert(`Gagal kompresi. Ukuran (${Math.round(fileToProcess.size/1024)}KB) masih > 100KB.`);
-             setIsCompressing(false);
-             return;
-          }
-      }
-
       setCheckInImageFile(fileToProcess);
       setCheckInImagePreview(URL.createObjectURL(fileToProcess));
-      setIsCompressing(false);
     } catch (error) {
-      console.error("Image processing error:", error);
-      alert("Gagal memproses gambar.");
-      setIsCompressing(false);
+       alert("Gagal proses gambar");
+    } finally {
+        setIsCompressing(false);
     }
   };
-
-
 
   const closeSummary = () => {
     setShowSummary(false);
     setIsPatrolling(false);
     setPatrolStartTime(null);
     setPatrolEndTime(null);
-    setLogs([]);
     setVisitedLocations([]);
     setSelectedShift("");
+    router.refresh();
   };
 
   const getPatrolDuration = () => {
@@ -443,14 +376,14 @@ export default function PatrolInterface({
             ))}
           </select>
 
-          <button
+          <Button
             type="button"
             onClick={handleStartPatrol}
-            disabled={!selectedShift}
-            className="w-full rounded-xl bg-blue-600 px-6 py-4 text-lg font-bold text-white transition-all hover:bg-blue-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!selectedShift || loading}
+            className="w-full rounded-xl bg-blue-600 h-14 text-lg font-bold text-white transition-all hover:bg-blue-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            MULAI PATROLI
-          </button>
+            {loading ? <Loader2 className="animate-spin" /> : "MULAI PATROLI"}
+          </Button>
 
           <button
             type="button"
@@ -493,7 +426,7 @@ export default function PatrolInterface({
               type="button"
               onClick={handleManualRefresh}
               className="rounded-full p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400"
-              title="Refresh Lokasi"
+              title="Refresh Lokasi dan GPS"
             >
               <RefreshCw
                 className={`h-5 w-5 ${loading ? "animate-spin" : ""}`}
@@ -539,10 +472,12 @@ export default function PatrolInterface({
                 }
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 disabled:bg-gray-400 transition-all shadow-sm active:scale-95"
               >
-                CHECK IN
+                {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : "CHECK IN"}
               </button>
             </div>
           </div>
+        ) : loading ? (
+             <div className="text-center p-3 text-gray-500">Memuat status patroli...</div>
         ) : (
           <div className="bg-green-50 p-3 rounded-lg border border-green-100 text-center dark:bg-green-900/20 dark:border-green-800">
             <p className="text-green-700 font-bold flex items-center justify-center dark:text-green-400 mb-2">
@@ -552,17 +487,9 @@ export default function PatrolInterface({
             <button
               type="button"
               onClick={handleFinishPatrol}
-              disabled={loading}
-              className="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition-all shadow-sm"
             >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Menyimpan...
-                </span>
-              ) : (
-                "SELESAI & SIMPAN LAPORAN"
-              )}
+                SELESAI SHIFT
             </button>
           </div>
         )}
@@ -605,37 +532,13 @@ export default function PatrolInterface({
               </div>
               <div className="flex justify-between items-center">
                 <div className="flex items-center text-gray-600 dark:text-gray-300">
-                  <MapIcon className="h-4 w-4 mr-2" />
+                  <MapPin className="h-4 w-4 mr-2" />
                   <span>Total Lokasi</span>
                 </div>
                 <span className="font-bold text-gray-900 dark:text-white">
-                  {logs.length} Titik
+                  {visitedLocations.length} / {locations.length} Titik
                 </span>
               </div>
-            </div>
-
-            <div className="space-y-2 mb-6 max-h-48 overflow-y-auto">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                Riwayat Kunjungan
-              </p>
-              {logs.map((log) => {
-                const loc = locations.find((l) => l.id === log.locationId);
-                return (
-                  <div
-                    key={log.checkInTime.getTime()}
-                    className="flex justify-between text-sm py-1 border-b border-gray-100 last:border-0 dark:border-gray-700"
-                  >
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {loc?.name || "Unknown"}
-                    </span>
-                    <span
-                      className={`font-mono text-xs px-2 py-0.5 rounded ${log.status === "aman" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
-                    >
-                      {log.status === "aman" ? "Aman" : "Bahaya"}
-                    </span>
-                  </div>
-                );
-              })}
             </div>
 
             <button
@@ -727,10 +630,13 @@ export default function PatrolInterface({
 
                   {checkInImagePreview && (
                     <div className="relative mt-2 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-                      <img 
+                      <Image 
                         src={checkInImagePreview} 
                         alt="Preview" 
+                        width={400} 
+                        height={300}
                         className="w-full h-32 object-cover"
+                        unoptimized
                       />
                       <button
                         type="button"
@@ -761,7 +667,7 @@ export default function PatrolInterface({
                 disabled={checkInStatus === 'tidak_aman' && (!checkInNote || isCompressing)}
                 className={checkInStatus === 'aman' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
             >
-                {checkInStatus === 'aman' ? 'Check In Aman' : 'Lapor Bahaya'}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : (checkInStatus === 'aman' ? 'Check In Aman' : 'Lapor Bahaya')}
             </Button>
           </DialogFooter>
         </DialogContent>
