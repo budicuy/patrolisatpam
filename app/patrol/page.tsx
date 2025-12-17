@@ -14,6 +14,7 @@ export default async function PatrolPage() {
 
   // Calculate active shift on server-side (SECURE)
   const initialActiveShiftId = await getActiveShiftId(shifts);
+  const serverTime = new Date().toISOString();
 
   // Pass user info to client component
   return (
@@ -22,6 +23,7 @@ export default async function PatrolPage() {
       locations={locations}
       shifts={shifts}
       initialActiveShiftId={initialActiveShiftId}
+      serverTime={serverTime}
     />
   );
 }

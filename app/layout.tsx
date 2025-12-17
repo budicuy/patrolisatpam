@@ -1,17 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Poppins, Quicksand } from "next/font/google";
 import "./globals.css";
 import SessionProvider from "@/components/providers/session-provider";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+
+const poppins = Poppins({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-poppins",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const quicksand = Quicksand({
   subsets: ["latin"],
+  variable: "--font-quicksand",
 });
+
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -26,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${poppins.variable} ${quicksand.variable} antialiased`}
       >
         <SessionProvider>{children}</SessionProvider>
       </body>

@@ -71,11 +71,13 @@ export default function PatrolInterface({
   locations,
   shifts,
   initialActiveShiftId,
+  serverTime,
 }: {
   user: User;
   locations: Location[];
   shifts: Shift[];
   initialActiveShiftId: string | null;
+  serverTime: string;
 }) {
   const router = useRouter();
   const [isPatrolling, setIsPatrolling] = useState(false);
@@ -92,6 +94,34 @@ export default function PatrolInterface({
   const [loading, setLoading] = useState(false);
 
   const [accuracy, setAccuracy] = useState<number | null>(null);
+
+  // CLOCK LOGIC
+  // Initialize with server time to avoid client-side manipulation
+  const [now, setNow] = useState(new Date(serverTime));
+
+  useEffect(() => {
+    // Tick every second based on previous state (independent of system clock drift/change)
+    const timer = setInterval(() => {
+      setNow((prev) => new Date(prev.getTime() + 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formattedTime = now.toLocaleTimeString("id-ID", {
+    timeZone: "Asia/Makassar",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const formattedDate = now.toLocaleDateString("id-ID", {
+    timeZone: "Asia/Makassar",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
 
   // Auto-select active shift on mount (redundant but safe if prop updates)
   useEffect(() => {
@@ -374,6 +404,20 @@ export default function PatrolInterface({
           <p className="text-gray-500 mb-6">
             Pilih shift jaga Anda untuk memulai pemantauan.
           </p>
+
+          <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex flex-col items-center justify-center border border-gray-200 dark:border-gray-600">
+            <div className="flex items-center gap-2 mb-1 text-gray-500 dark:text-gray-400 text-sm font-medium">
+              <Clock className="w-4 h-4" />
+              Waktu Sekarang (WITA)
+              <br />
+            </div>
+            <div className="text-3xl font-mono font-bold text-gray-900 dark:text-white tracking-wider">
+              {formattedTime}
+            </div>
+            <div className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+              {formattedDate}
+            </div>
+          </div>
 
           <div className="mb-8 space-y-3">
             {shifts.map((shift) => {
