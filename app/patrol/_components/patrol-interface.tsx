@@ -70,10 +70,12 @@ export default function PatrolInterface({
   user,
   locations,
   shifts,
+  initialActiveShiftId,
 }: {
   user: User;
   locations: Location[];
   shifts: Shift[];
+  initialActiveShiftId: string | null;
 }) {
   const router = useRouter();
   const [isPatrolling, setIsPatrolling] = useState(false);
@@ -84,48 +86,19 @@ export default function PatrolInterface({
   const [targetLocation, setTargetLocation] = useState<Location | null>(null); // The next location to visit
   const [visitedLocations, setVisitedLocations] = useState<string[]>([]);
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null);
-  const [selectedShift, setSelectedShift] = useState<string>("");
+
+  // SECURE: Initialize with server-provided active shift ID
+  const [selectedShift, setSelectedShift] = useState<string>(initialActiveShiftId || "");
   const [loading, setLoading] = useState(false);
 
   const [accuracy, setAccuracy] = useState<number | null>(null);
 
-  // Helper to check if a shift is active based on current time
-  const isShiftActive = (shift: Shift) => {
-    const now = new Date();
-    const currentHours = now.getHours();
-    const currentMinutes = now.getMinutes();
-
-    const [startHour, startMinute] = shift.startTime.split(":").map(Number);
-    const [endHour, endMinute] = shift.endTime.split(":").map(Number);
-
-    // Check if shift is overnight
-    if (startHour > endHour) {
-      // It's overnight (e.g. 23:30 to 07:30)
-
-      // Active if:
-      // 1. Current time is >= Start Time (e.g. >= 23:30)
-      // 2. OR Current time is < End Time (e.g. < 07:30)
-
-      const isAfterStart = (currentHours > startHour) || (currentHours === startHour && currentMinutes >= startMinute);
-      const isBeforeEnd = (currentHours < endHour) || (currentHours === endHour && currentMinutes <= endMinute);
-
-      return isAfterStart || isBeforeEnd;
-    } else {
-      // Standard day shift (e.g. 07:30 to 15:30)
-      const isAfterStart = (currentHours > startHour) || (currentHours === startHour && currentMinutes >= startMinute);
-      const isBeforeEnd = (currentHours < endHour) || (currentHours === endHour && currentMinutes <= endMinute);
-
-      return isAfterStart && isBeforeEnd;
-    }
-  };
-
-  // Auto-select active shift on mount
+  // Auto-select active shift on mount (redundant but safe if prop updates)
   useEffect(() => {
-    const active = shifts.find(s => isShiftActive(s));
-    if (active) {
-      setSelectedShift(active.id);
+    if (initialActiveShiftId) {
+      setSelectedShift(initialActiveShiftId);
     }
-  }, [shifts]);
+  }, [initialActiveShiftId]);
 
   // Fetch Patrol Progress (Shared State)
   const fetchProgress = useCallback(async () => {
@@ -404,7 +377,7 @@ export default function PatrolInterface({
 
           <div className="mb-8 space-y-3">
             {shifts.map((shift) => {
-              const active = isShiftActive(shift);
+              const active = shift.id === initialActiveShiftId;
               return (
                 <div
                   key={shift.id}

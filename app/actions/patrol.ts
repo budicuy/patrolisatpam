@@ -121,3 +121,18 @@ export async function checkInPatrol(
     return { error: error.message || "Gagal check in" };
   }
 }
+
+export async function getActiveShiftId(shiftsData: { id: string; startTime: string; endTime: string }[]) {
+  const now = new Date();
+
+  for (const shift of shiftsData) {
+    const { start, end } = getShiftWindow(shift, now);
+
+    // Check if NOW is within the window (Inclusive Start, Exclusive End)
+    if (now.getTime() >= start.getTime() && now.getTime() < end.getTime()) {
+      return shift.id;
+    }
+  }
+
+  return null;
+}

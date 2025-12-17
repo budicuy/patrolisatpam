@@ -3,6 +3,7 @@ import { getLocations } from "@/app/actions/locations";
 import { getShifts } from "@/app/actions/shifts";
 import { auth } from "@/lib/auth";
 import PatrolInterface from "./_components/patrol-interface";
+import { getActiveShiftId } from "@/app/actions/patrol";
 
 export default async function PatrolPage() {
   const session = await auth();
@@ -11,12 +12,16 @@ export default async function PatrolPage() {
   const locations = await getLocations();
   const shifts = await getShifts();
 
+  // Calculate active shift on server-side (SECURE)
+  const initialActiveShiftId = await getActiveShiftId(shifts);
+
   // Pass user info to client component
   return (
     <PatrolInterface
       user={session.user as any}
       locations={locations}
       shifts={shifts}
+      initialActiveShiftId={initialActiveShiftId}
     />
   );
 }
