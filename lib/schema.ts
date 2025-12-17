@@ -26,7 +26,7 @@ export const locations = pgTable("locations", {
   latitude: doublePrecision("latitude").notNull(),
   longitude: doublePrecision("longitude").notNull(),
   radius: integer("radius").default(5).notNull(), // in meters
-  order: integer("order").notNull(), // patrol sequence
+  order: integer("order").notNull().unique(), // patrol sequence
   createdAt: timestamp("created_at").defaultNow(),
 });
 

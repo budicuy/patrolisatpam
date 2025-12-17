@@ -5,27 +5,47 @@ import { db } from "@/lib/db";
 import { patrolHistory, shifts } from "@/lib/schema";
 import { and, eq, gte, lte, desc, sql } from "drizzle-orm";
 
-// Helper to determine active shift window
+// TIMEZONE CONFIGURATION
+// Indonesia Central Time (WITA) is UTC+8
+const TIMEZONE_OFFSET_HOURS = 8;
+const TIMEZONE_OFFSET_MS = TIMEZONE_OFFSET_HOURS * 60 * 60 * 1000;
+
+// Helper to determine active shift window in specific timezone (WITA)
 function getShiftWindow(shift: { startTime: string; endTime: string }, now: Date = new Date()) {
+  // 1. Get current time in WITA components
+  // We use UTC methods on a shifted date object to extract "local" components
+  const nowWita = new Date(now.getTime() + TIMEZONE_OFFSET_MS);
+  const currentAuthorsYear = nowWita.getUTCFullYear();
+  const currentAuthorsMonth = nowWita.getUTCMonth();
+  const currentAuthorsDate = nowWita.getUTCDate();
+  const currentAuthorsHours = nowWita.getUTCHours();
+  const currentAuthorsMinutes = nowWita.getUTCMinutes();
+
   const [startHour, startMinute] = shift.startTime.split(":").map(Number);
   const [endHour, endMinute] = shift.endTime.split(":").map(Number);
 
-  const start = new Date(now);
-  start.setHours(startHour, startMinute, 0, 0);
+  // 2. Construct Start/End times in WITA context
+  // Initially assume they are on the "current WITA day"
+  let startWitaTimestamp = Date.UTC(currentAuthorsYear, currentAuthorsMonth, currentAuthorsDate, startHour, startMinute, 0, 0);
+  let endWitaTimestamp = Date.UTC(currentAuthorsYear, currentAuthorsMonth, currentAuthorsDate, endHour, endMinute, 59, 999);
 
-  const end = new Date(now);
-  end.setHours(endHour, endMinute, 59, 999);
-
-  // Handle overnight shifts (e.g. 22:00 - 06:00)
+  // 3. Handle Overnight Shifts and Day Boundaries
+  // Logic: Find the closest "valid" shift window relative to NOW.
   if (startHour > endHour) {
-    // If we are currently in the "morning" part (00:00 - 06:00), the shift started yesterday
-    if (now.getHours() < endHour || (now.getHours() === endHour && now.getMinutes() <= endMinute)) {
-        start.setDate(start.getDate() - 1);
+    // Overnight Shift (e.g., 23:00 - 07:00)
+
+    // If currently in the morning (e.g., 05:00), the shift started yesterday
+    if (currentAuthorsHours < endHour || (currentAuthorsHours === endHour && currentAuthorsMinutes <= endMinute)) {
+      startWitaTimestamp -= 24 * 60 * 60 * 1000; // Start was yesterday
     } else {
-        // If we are in the "evening" part (22:00 - 23:59), the shift ends tomorrow
-        end.setDate(end.getDate() + 1);
+      // If currently in the evening (e.g., 23:30), the shift ends tomorrow
+      endWitaTimestamp += 24 * 60 * 60 * 1000; // End is tomorrow
     }
   }
+
+  // 4. Convert back to absolute UTC for DB queries
+  const start = new Date(startWitaTimestamp - TIMEZONE_OFFSET_MS);
+  const end = new Date(endWitaTimestamp - TIMEZONE_OFFSET_MS);
 
   return { start, end };
 }
@@ -38,6 +58,7 @@ export async function getPatrolProgress(shiftId: string) {
 
     if (!shift) return { visitedLocationIds: [] };
 
+    // Use current server time, but logic inside handles WITA adjustment
     const { start, end } = getShiftWindow({ startTime: shift.startTime, endTime: shift.endTime });
 
     const logs = await db
@@ -69,28 +90,25 @@ export async function checkInPatrol(
   try {
     // 1. Get Shift Details
     const shift = await db.query.shifts.findFirst({
-        where: eq(shifts.id, shiftId),
+      where: eq(shifts.id, shiftId),
     });
 
     if (!shift) throw new Error("Shift tidak ditemukan");
 
-    // 2. Validate Time (Shift Locking)
-    const { start, end } = getShiftWindow({ startTime: shift.startTime, endTime: shift.endTime });
+    // 2. Validate Time (Shift Locking) with WITA
     const now = new Date();
+    const { start, end } = getShiftWindow({ startTime: shift.startTime, endTime: shift.endTime }, now);
 
     if (now < start || now > end) {
-        throw new Error("Waktu patroli untuk shift ini sudah habis atau belum dimulai.");
+      throw new Error("Waktu patroli untuk shift ini sudah habis atau belum dimulai (Zona Waktu WITA).");
     }
 
-    // 3. Check if already checked in (Optional: prevent double check-in for same location in same shift session? 
-    // User didn't explicitly forbid re-check, but implies 'completion'. Let's allow update or ignore dups to be safe, 
-    // but typically we just insert a new log. Let's stick to insert.)
-
+    // 3. Insert Log
     await db.insert(patrolHistory).values({
       userId,
       shiftId,
       locationId,
-      checkInTime: new Date(),
+      checkInTime: now, // Store absolute UTC
       status,
       notes,
       imageData,
