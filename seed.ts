@@ -2,6 +2,9 @@ import { hash } from "bcryptjs";
 import { db } from "./lib/db";
 import { users, shifts, locations, patrolHistory } from "./lib/schema";
 
+
+const passHasSatpam = await hash("satpam123", 10)
+
 const main = async () => {
   try {
     await db.delete(patrolHistory);
@@ -14,15 +17,15 @@ const main = async () => {
         name: "GAS",
         latitude: -3.549033,
         longitude: 114.730356,
-        radius: 20,
+        radius: 200,
         order: 1,
       },
       {
         name: "GAS 2",
         latitude: -3.549033,
         longitude: 114.730356,
-        radius: 20,
-        order: 1,
+        radius: 200,
+        order: 2,
       },
     ]).onConflictDoNothing();
     console.log("~~~ Seeding locations complete! ~~~ 👌");
@@ -37,19 +40,19 @@ const main = async () => {
       {
         username: "satpam1",
         name: "Satpam 01",
-        password: await hash("satpam123", 10),
+        password: passHasSatpam,
         role: "satpam",
       },
       {
         username: "satpam2",
         name: "Satpam 02",
-        password: await hash("satpam123", 10),
+        password: passHasSatpam,
         role: "satpam",
       },
       {
         username: "satpam3",
         name: "Satpam 03",
-        password: await hash("satpam123", 10),
+        password: passHasSatpam,
         role: "satpam",
       },
     ]).onConflictDoNothing();
