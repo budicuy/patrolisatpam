@@ -106,8 +106,14 @@ export default function PatrolInterface({
     "aman",
   );
   const [checkInNote, setCheckInNote] = useState("");
-  const [checkInImage, setCheckInImage] = useState<string | null>(null);
+  const [checkInImagePreview, setCheckInImagePreview] = useState<string | null>(
+    null,
+  );
+  const [checkInImageFile, setCheckInImageFile] = useState<File | Blob | null>(
+    null,
+  );
   const [isCompressing, setIsCompressing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Initial Logic: Find first unvisited location based on order
   useEffect(() => {
@@ -247,9 +253,11 @@ export default function PatrolInterface({
     }
 
     // Open Modal
+    // Open Modal
     setCheckInStatus("aman");
     setCheckInNote("");
-    setCheckInImage(null);
+    setCheckInImagePreview(null);
+    setCheckInImageFile(null);
     setShowCheckInModal(true);
   };
 
@@ -257,65 +265,89 @@ export default function PatrolInterface({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Ukuran file terlalu besar (max 5MB original)");
+    // Check original size to warn only extreme cases (allow compression to fix it)
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Ukuran file terlalu besar (max 10MB input)");
       return;
     }
 
     setIsCompressing(true);
     try {
-      const options = {
-        maxSizeMB: 0.1, // 100KB
-        maxWidthOrHeight: 800,
-        useWebWorker: true,
-      };
+      let fileToProcess = file;
 
-      const compressedFile = await imageCompression(file, options);
-
-      // Verify strict 100KB limit after compression
-      if (compressedFile.size > 100 * 1024) {
-         alert("Gagal mengkompres gambar hingga di bawah 100KB. Silakan pilih gambar lain.");
-         setIsCompressing(false);
-         return;
+      // Only compress if larger than 100KB
+      if (file.size > 100 * 1024) {
+        const options = {
+            maxSizeMB: 0.1, // 100KB target
+            maxWidthOrHeight: 1200,
+            useWebWorker: true,
+        };
+        try {
+            fileToProcess = await imageCompression(file, options);
+        } catch (cErr) {
+            console.error("Compression failed", cErr);
+            alert("Gagal mengkompres gambar. Menggunakan file asli.");
+        }
       }
 
-      // Convert to File again (browser-image-compression result is a Blob/File)
-      // Upload to Vercel Blob via Server Action
-      const formData = new FormData();
-      formData.append("file", compressedFile);
+      // Final Check post-compression
+      // Note: imageCompression returns a Blob/File.
+      if (fileToProcess.size > 150 * 1024) {
+          // Allow slight tolerance (150KB) or strictly enforce? User said 100kb.
+          // Let's warn but proceed or fail?
+          // User: "maksimal 100kb saja ketika di upload"
+          if (fileToProcess.size > 105 * 1024) { // strict 100kb + epsilon
+             alert(`Gagal kompresi. Ukuran (${Math.round(fileToProcess.size/1024)}KB) masih > 100KB.`);
+             setIsCompressing(false);
+             return;
+          }
+      }
 
-      const uploadedUrl = await uploadImage(formData);
-      setCheckInImage(uploadedUrl);
+      setCheckInImageFile(fileToProcess);
+      setCheckInImagePreview(URL.createObjectURL(fileToProcess));
       setIsCompressing(false);
     } catch (error) {
-      console.error("Upload error:", error);
-      alert("Gagal mengupload gambar.");
+      console.error("Image processing error:", error);
+      alert("Gagal memproses gambar.");
       setIsCompressing(false);
     }
   };
 
-  const confirmCheckIn = () => {
+  const confirmCheckIn = async () => {
     if (!targetLocation) return;
-
+    
     if (checkInStatus === "tidak_aman" && !checkInNote) {
-      alert("Mohon isi alasan kondisi tidak aman.");
-      return;
+       alert("Mohon isi alasan kondisi tidak aman.");
+       return;
     }
 
-    const newLog = {
-      locationId: targetLocation.id,
-      checkInTime: new Date(),
-      status: checkInStatus,
-      notes: checkInNote || undefined,
-      imageData: checkInImage || undefined,
-    };
+    setIsUploading(true);
+    let finalImageUrl: string | undefined = undefined;
 
-    setLogs((prev) => [...prev, newLog]);
-    setVisitedLocations((prev) => [...prev, targetLocation.id]);
-    setShowCheckInModal(false);
+    try {
+        if (checkInStatus === "tidak_aman" && checkInImageFile) {
+            const formData = new FormData();
+            formData.append("file", checkInImageFile);
+            finalImageUrl = await uploadImage(formData);
+        }
 
-    // Optional: Show simple toast/alert via Sonner if available, or just standard alert/nothing
-    // alert("Check-in berhasil! Lanjutkan ke titik berikutnya.");
+        const newLog = {
+          locationId: targetLocation.id,
+          checkInTime: new Date(),
+          status: checkInStatus,
+          notes: checkInNote || undefined,
+          imageData: finalImageUrl,
+        };
+
+        setLogs((prev) => [...prev, newLog]);
+        setVisitedLocations((prev) => [...prev, targetLocation.id]);
+        setShowCheckInModal(false);
+    } catch (error) {
+        console.error("Check-in error:", error);
+        alert("Gagal melakukan check-in (Upload error). Silakan coba lagi.");
+    } finally {
+        setIsUploading(false);
+    }
   };
 
   const handleFinishPatrol = async () => {
@@ -671,19 +703,22 @@ export default function PatrolInterface({
                     </label>
                   </div>
 
-                  {checkInImage && (
+                  {checkInImagePreview && (
                     <div className="relative mt-2 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-                      <img
-                        src={checkInImage}
-                        alt="Preview"
+                      <img 
+                        src={checkInImagePreview} 
+                        alt="Preview" 
                         className="w-full h-32 object-cover"
                       />
                       <button
                         type="button"
-                        onClick={() => setCheckInImage(null)}
+                        onClick={() => {
+                            setCheckInImagePreview(null);
+                            setCheckInImageFile(null);
+                        }}
                         className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white hover:bg-black/70"
                       >
-                        <X className="h-4 w-4" />
+                       <X className="h-4 w-4" />
                       </button>
                     </div>
                   )}
@@ -699,19 +734,19 @@ export default function PatrolInterface({
             >
               Batal
             </Button>
-            <Button
-              onClick={confirmCheckIn}
-              disabled={
-                checkInStatus === "tidak_aman" &&
-                (!checkInNote || isCompressing)
-              }
-              className={
-                checkInStatus === "aman"
-                  ? "bg-green-600 hover:bg-green-700"
-                  : "bg-red-600 hover:bg-red-700"
-              }
+            <Button 
+                onClick={confirmCheckIn}
+                disabled={checkInStatus === 'tidak_aman' && (!checkInNote || isCompressing || isUploading)}
+                className={checkInStatus === 'aman' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
             >
-              {checkInStatus === "aman" ? "Check In Aman" : "Lapor Bahaya"}
+              {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Mengupload...
+                  </>
+              ) : (
+                checkInStatus === 'aman' ? 'Check In Aman' : 'Lapor Bahaya'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
