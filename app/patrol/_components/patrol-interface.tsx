@@ -94,8 +94,92 @@ export default function PatrolInterface({
       status: "aman" | "tidak_aman";
       notes?: string;
       imageData?: string;
+      tempImageFile?: File; // Temporary file for deferred upload
     }[]
   >([]);
+
+  const confirmCheckIn = async () => {
+    if (!targetLocation) return;
+
+    if (checkInStatus === "tidak_aman" && !checkInNote) {
+      alert("Mohon isi alasan kondisi tidak aman.");
+      return;
+    }
+
+    // Defer upload: use preview URL for local display if needed, but store File for later
+    const newLog = {
+      locationId: targetLocation.id,
+      checkInTime: new Date(),
+      status: checkInStatus,
+      notes: checkInNote || undefined,
+      imageData: checkInImagePreview || undefined, // Use local blob link temporarily or empty
+      tempImageFile: (checkInImageFile as File) || undefined, // Store file for later upload
+    };
+
+    setLogs((prev) => [...prev, newLog]);
+    setVisitedLocations((prev) => [...prev, targetLocation.id]);
+    setShowCheckInModal(false);
+  };
+
+  const handleFinishPatrol = async () => {
+    const confirmed = confirm(
+      "Apakah Anda yakin ingin mengakhiri patroli dan menyimpan laporan?",
+    );
+    if (!confirmed) return;
+
+    setLoading(true);
+    try {
+      // 1. Process deferred uploads
+      const processedLogs = await Promise.all(
+        logs.map(async (log) => {
+          if (log.status === 'tidak_aman' && log.tempImageFile) {
+            const formData = new FormData();
+            formData.append("file", log.tempImageFile);
+            
+            try {
+               const uploadedUrl = await uploadImage(formData);
+               // Return new log object with real URL and without temp file
+               return {
+                 locationId: log.locationId,
+                 checkInTime: log.checkInTime,
+                 status: log.status,
+                 notes: log.notes,
+                 imageData: uploadedUrl
+               };
+            } catch (upErr) {
+               console.error("Upload failed for log:", log, upErr);
+               throw new Error("Gagal mengupload foto bukti. Silakan coba lagi.");
+            }
+          }
+          
+          // Return as is (without tempImageFile for server safety)
+          return {
+            locationId: log.locationId,
+            checkInTime: log.checkInTime,
+            status: log.status,
+            notes: log.notes,
+            imageData: log.status === 'aman' ? undefined : log.imageData // Careful: if tidak_aman but no file, keep notes etc.
+          };
+        })
+      );
+
+      // 2. Submit Final Report with generic types (removing tempImageFile property effectively)
+      const result = await submitPatrolReport(user.id, selectedShift, processedLogs);
+
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
+
+      setPatrolEndTime(new Date());
+      setShowSummary(true);
+    } catch (error: any) {
+      console.error(error);
+      alert(error.message || "Terjadi kesalahan saat menyimpan laporan.");
+    } finally {
+      setLoading(false);
+    }
+  };
   const [patrolStartTime, setPatrolStartTime] = useState<Date | null>(null);
   const [showSummary, setShowSummary] = useState(false);
   const [patrolEndTime, setPatrolEndTime] = useState<Date | null>(null);
@@ -113,7 +197,6 @@ export default function PatrolInterface({
     null,
   );
   const [isCompressing, setIsCompressing] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
 
   // Initial Logic: Find first unvisited location based on order
   useEffect(() => {
@@ -313,68 +396,7 @@ export default function PatrolInterface({
     }
   };
 
-  const confirmCheckIn = async () => {
-    if (!targetLocation) return;
-    
-    if (checkInStatus === "tidak_aman" && !checkInNote) {
-       alert("Mohon isi alasan kondisi tidak aman.");
-       return;
-    }
 
-    setIsUploading(true);
-    let finalImageUrl: string | undefined = undefined;
-
-    try {
-        if (checkInStatus === "tidak_aman" && checkInImageFile) {
-            const formData = new FormData();
-            formData.append("file", checkInImageFile);
-            finalImageUrl = await uploadImage(formData);
-        }
-
-        const newLog = {
-          locationId: targetLocation.id,
-          checkInTime: new Date(),
-          status: checkInStatus,
-          notes: checkInNote || undefined,
-          imageData: finalImageUrl,
-        };
-
-        setLogs((prev) => [...prev, newLog]);
-        setVisitedLocations((prev) => [...prev, targetLocation.id]);
-        setShowCheckInModal(false);
-    } catch (error) {
-        console.error("Check-in error:", error);
-        alert("Gagal melakukan check-in (Upload error). Silakan coba lagi.");
-    } finally {
-        setIsUploading(false);
-    }
-  };
-
-  const handleFinishPatrol = async () => {
-    const confirmed = confirm(
-      "Apakah Anda yakin ingin mengakhiri patroli dan menyimpan laporan?",
-    );
-    if (!confirmed) return;
-
-    setLoading(true);
-    try {
-      const result = await submitPatrolReport(user.id, selectedShift, logs);
-
-      if (result.error) {
-        alert(result.error);
-        return;
-      }
-
-      setPatrolEndTime(new Date());
-      setShowSummary(true);
-      // setIsPatrolling(false); // keep true to show modal overlay
-    } catch (error) {
-      console.error(error);
-      alert("Terjadi kesalahan saat menyimpan laporan.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const closeSummary = () => {
     setShowSummary(false);
@@ -736,17 +758,10 @@ export default function PatrolInterface({
             </Button>
             <Button 
                 onClick={confirmCheckIn}
-                disabled={checkInStatus === 'tidak_aman' && (!checkInNote || isCompressing || isUploading)}
+                disabled={checkInStatus === 'tidak_aman' && (!checkInNote || isCompressing)}
                 className={checkInStatus === 'aman' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
             >
-              {isUploading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Mengupload...
-                  </>
-              ) : (
-                checkInStatus === 'aman' ? 'Check In Aman' : 'Lapor Bahaya'
-              )}
+                {checkInStatus === 'aman' ? 'Check In Aman' : 'Lapor Bahaya'}
             </Button>
           </DialogFooter>
         </DialogContent>
