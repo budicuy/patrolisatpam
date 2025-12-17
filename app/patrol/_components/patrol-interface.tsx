@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils"; // Assuming you have a cn utility
 
 // Dynamic import for Map to avoid SSR issues
 const PatrolMap = dynamic(() => import("./patrol-map"), {
@@ -88,6 +89,44 @@ export default function PatrolInterface({
 
   const [accuracy, setAccuracy] = useState<number | null>(null);
 
+  // Helper to check if a shift is active based on current time
+  const isShiftActive = (shift: Shift) => {
+    const now = new Date();
+    const currentHours = now.getHours();
+    const currentMinutes = now.getMinutes();
+
+    const [startHour, startMinute] = shift.startTime.split(":").map(Number);
+    const [endHour, endMinute] = shift.endTime.split(":").map(Number);
+
+    // Check if shift is overnight
+    if (startHour > endHour) {
+      // It's overnight (e.g. 23:30 to 07:30)
+
+      // Active if:
+      // 1. Current time is >= Start Time (e.g. >= 23:30)
+      // 2. OR Current time is < End Time (e.g. < 07:30)
+
+      const isAfterStart = (currentHours > startHour) || (currentHours === startHour && currentMinutes >= startMinute);
+      const isBeforeEnd = (currentHours < endHour) || (currentHours === endHour && currentMinutes <= endMinute);
+
+      return isAfterStart || isBeforeEnd;
+    } else {
+      // Standard day shift (e.g. 07:30 to 15:30)
+      const isAfterStart = (currentHours > startHour) || (currentHours === startHour && currentMinutes >= startMinute);
+      const isBeforeEnd = (currentHours < endHour) || (currentHours === endHour && currentMinutes <= endMinute);
+
+      return isAfterStart && isBeforeEnd;
+    }
+  };
+
+  // Auto-select active shift on mount
+  useEffect(() => {
+    const active = shifts.find(s => isShiftActive(s));
+    if (active) {
+      setSelectedShift(active.id);
+    }
+  }, [shifts]);
+
   // Fetch Patrol Progress (Shared State)
   const fetchProgress = useCallback(async () => {
     if (!selectedShift) return;
@@ -117,48 +156,48 @@ export default function PatrolInterface({
 
     setLoading(true);
     try {
-        let finalImageUrl = undefined;
+      let finalImageUrl = undefined;
 
-        // 1. Upload Image Immediate if exists
-        if (checkInImageFile) {
-            const formData = new FormData();
-            formData.append("file", checkInImageFile);
-            try {
-                finalImageUrl = await uploadImage(formData);
-            } catch (error) {
-                console.error("Upload image failed", error);
-                alert("Gagal upload foto, mencoba simpan data tanpa foto...");
-            }
+      // 1. Upload Image Immediate if exists
+      if (checkInImageFile) {
+        const formData = new FormData();
+        formData.append("file", checkInImageFile);
+        try {
+          finalImageUrl = await uploadImage(formData);
+        } catch (error) {
+          console.error("Upload image failed", error);
+          alert("Gagal upload foto, mencoba simpan data tanpa foto...");
         }
+      }
 
-        // 2. Immediate DB Insert
-        const result = await checkInPatrol(
-            user.id,
-            selectedShift,
-            targetLocation.id,
-            checkInStatus,
-            checkInNote,
-            finalImageUrl
-        );
+      // 2. Immediate DB Insert
+      const result = await checkInPatrol(
+        user.id,
+        selectedShift,
+        targetLocation.id,
+        checkInStatus,
+        checkInNote,
+        finalImageUrl
+      );
 
-        if (result.error) {
-            alert(result.error);
-            return;
-        }
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
 
-        // 3. Update Local State (Optimistic)
-        setVisitedLocations((prev) => [...prev, targetLocation.id]);
-        setShowCheckInModal(false);
-        
-        // Refresh progress to ensure sync
-        fetchProgress(); 
+      // 3. Update Local State (Optimistic)
+      setVisitedLocations((prev) => [...prev, targetLocation.id]);
+      setShowCheckInModal(false);
+
+      // Refresh progress to ensure sync
+      fetchProgress();
     } catch (error: unknown) {
-        console.error("Check in error", error);
-        let msg = "Gagal check in.";
-        if(error instanceof Error) msg = error.message;
-        alert(msg);
+      console.error("Check in error", error);
+      let msg = "Gagal check in.";
+      if (error instanceof Error) msg = error.message;
+      alert(msg);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -230,7 +269,7 @@ export default function PatrolInterface({
         console.error("Error getting location", error);
         // Suppress repetitive alerts
         if (error.code === error.PERMISSION_DENIED) {
-             // alert("Izin lokasi ditolak."); 
+          // alert("Izin lokasi ditolak."); 
         }
       },
       { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
@@ -243,28 +282,28 @@ export default function PatrolInterface({
     setLoading(true);
     // Sync patrol progress
     fetchProgress().then(() => {
-        // Then sync GPS
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude, accuracy } = position.coords;
-                setCurrentPosition({ lat: latitude, lng: longitude });
-                setAccuracy(accuracy);
-                if (targetLocation) {
-                    const dist = getDistance(
-                        { latitude, longitude },
-                        { latitude: targetLocation.latitude, longitude: targetLocation.longitude }
-                    );
-                    setDistanceToTarget(dist);
-                }
-                setLoading(false);
-            },
-            (error) => {
-                console.error("GPS Refresh Error", error);
-                alert("Gagal refresh GPS. Cek sinyal.");
-                setLoading(false);
-            },
-            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-        );
+      // Then sync GPS
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude, accuracy } = position.coords;
+          setCurrentPosition({ lat: latitude, lng: longitude });
+          setAccuracy(accuracy);
+          if (targetLocation) {
+            const dist = getDistance(
+              { latitude, longitude },
+              { latitude: targetLocation.latitude, longitude: targetLocation.longitude }
+            );
+            setDistanceToTarget(dist);
+          }
+          setLoading(false);
+        },
+        (error) => {
+          console.error("GPS Refresh Error", error);
+          alert("Gagal refresh GPS. Cek sinyal.");
+          setLoading(false);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
     });
   };
 
@@ -312,22 +351,22 @@ export default function PatrolInterface({
       let fileToProcess = file;
       if (file.size > 100 * 1024) {
         const options = {
-            maxSizeMB: 0.1, 
-            maxWidthOrHeight: 1200,
-            useWebWorker: true,
+          maxSizeMB: 0.1,
+          maxWidthOrHeight: 1200,
+          useWebWorker: true,
         };
         try {
-            fileToProcess = await imageCompression(file, options);
+          fileToProcess = await imageCompression(file, options);
         } catch (cErr) {
-            console.error(cErr);
+          console.error(cErr);
         }
       }
       setCheckInImageFile(fileToProcess);
       setCheckInImagePreview(URL.createObjectURL(fileToProcess));
     } catch (error) {
-       alert("Gagal proses gambar");
+      alert("Gagal proses gambar");
     } finally {
-        setIsCompressing(false);
+      setIsCompressing(false);
     }
   };
 
@@ -363,18 +402,59 @@ export default function PatrolInterface({
             Pilih shift jaga Anda untuk memulai pemantauan.
           </p>
 
-          <select
-            value={selectedShift}
-            onChange={(e) => setSelectedShift(e.target.value)}
-            className="mb-8 block w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          >
-            <option value="">-- Pilih Shift --</option>
-            {shifts.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} ({s.startTime} - {s.endTime})
-              </option>
-            ))}
-          </select>
+          <div className="mb-8 space-y-3">
+            {shifts.map((shift) => {
+              const active = isShiftActive(shift);
+              return (
+                <div
+                  key={shift.id}
+                  onClick={() => active && setSelectedShift(shift.id)}
+                  className={cn(
+                    "flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all",
+                    selectedShift === shift.id
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                      : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-200",
+                    !active && "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-900"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-5 h-5 rounded-full border-2 flex items-center justify-center",
+                      selectedShift === shift.id
+                        ? "border-blue-600"
+                        : "border-gray-300 dark:border-gray-500"
+                    )}>
+                      {selectedShift === shift.id && (
+                        <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                      )}
+                    </div>
+                    <div className="text-left">
+                      <p className={cn(
+                        "font-bold",
+                        active ? "text-gray-900 dark:text-white" : "text-gray-500"
+                      )}>
+                        {shift.name}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {shift.startTime} - {shift.endTime}
+                      </p>
+                    </div>
+                  </div>
+
+                  {!active && (
+                    <span className="text-xs font-mono px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-gray-500">
+                      Closed
+                    </span>
+                  )}
+                  {active && selectedShift === shift.id && (
+                    <span className="text-xs font-bold px-2 py-1 bg-green-100 text-green-700 rounded">
+                      Active
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
           <Button
             type="button"
@@ -472,12 +552,12 @@ export default function PatrolInterface({
                 }
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 disabled:bg-gray-400 transition-all shadow-sm active:scale-95"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : "CHECK IN"}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "CHECK IN"}
               </button>
             </div>
           </div>
         ) : loading ? (
-             <div className="text-center p-3 text-gray-500">Memuat status patroli...</div>
+          <div className="text-center p-3 text-gray-500">Memuat status patroli...</div>
         ) : (
           <div className="bg-green-50 p-3 rounded-lg border border-green-100 text-center dark:bg-green-900/20 dark:border-green-800">
             <p className="text-green-700 font-bold flex items-center justify-center dark:text-green-400 mb-2">
@@ -489,7 +569,7 @@ export default function PatrolInterface({
               onClick={handleFinishPatrol}
               className="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition-all shadow-sm"
             >
-                SELESAI SHIFT
+              Klik lihat laporan
             </button>
           </div>
         )}
@@ -565,11 +645,10 @@ export default function PatrolInterface({
               <button
                 type="button"
                 onClick={() => setCheckInStatus("aman")}
-                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
-                  checkInStatus === "aman"
-                    ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20"
-                    : "border-gray-200 hover:border-green-200 text-gray-500"
-                }`}
+                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${checkInStatus === "aman"
+                  ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20"
+                  : "border-gray-200 hover:border-green-200 text-gray-500"
+                  }`}
               >
                 <CheckCircle
                   className={`h-8 w-8 ${checkInStatus === "aman" ? "fill-green-500 text-white" : ""}`}
@@ -580,11 +659,10 @@ export default function PatrolInterface({
               <button
                 type="button"
                 onClick={() => setCheckInStatus("tidak_aman")}
-                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
-                  checkInStatus === "tidak_aman"
-                    ? "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20"
-                    : "border-gray-200 hover:border-red-200 text-gray-500"
-                }`}
+                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${checkInStatus === "tidak_aman"
+                  ? "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20"
+                  : "border-gray-200 hover:border-red-200 text-gray-500"
+                  }`}
               >
                 <LogOut
                   className={`h-8 w-8 ${checkInStatus === "tidak_aman" ? "fill-red-500 text-white" : ""}`}
@@ -630,10 +708,10 @@ export default function PatrolInterface({
 
                   {checkInImagePreview && (
                     <div className="relative mt-2 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-                      <Image 
-                        src={checkInImagePreview} 
-                        alt="Preview" 
-                        width={400} 
+                      <Image
+                        src={checkInImagePreview}
+                        alt="Preview"
+                        width={400}
                         height={300}
                         className="w-full h-32 object-cover"
                         unoptimized
@@ -641,12 +719,12 @@ export default function PatrolInterface({
                       <button
                         type="button"
                         onClick={() => {
-                            setCheckInImagePreview(null);
-                            setCheckInImageFile(null);
+                          setCheckInImagePreview(null);
+                          setCheckInImageFile(null);
                         }}
                         className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white hover:bg-black/70"
                       >
-                       <X className="h-4 w-4" />
+                        <X className="h-4 w-4" />
                       </button>
                     </div>
                   )}
@@ -662,12 +740,12 @@ export default function PatrolInterface({
             >
               Batal
             </Button>
-            <Button 
-                onClick={confirmCheckIn}
-                disabled={checkInStatus === 'tidak_aman' && (!checkInNote || isCompressing)}
-                className={checkInStatus === 'aman' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+            <Button
+              onClick={confirmCheckIn}
+              disabled={checkInStatus === 'tidak_aman' && (!checkInNote || isCompressing)}
+              className={checkInStatus === 'aman' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
             >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : (checkInStatus === 'aman' ? 'Check In Aman' : 'Lapor Bahaya')}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (checkInStatus === 'aman' ? 'Check In Aman' : 'Lapor Bahaya')}
             </Button>
           </DialogFooter>
         </DialogContent>
