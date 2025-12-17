@@ -1,12 +1,11 @@
 "use client";
 
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
+import { Pencil, Plus, Trash } from "lucide-react";
 import { useState, useTransition } from "react";
-import { Plus, Pencil, Trash } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { UserForm } from "./user-form";
-import { deleteUser } from "@/app/actions/users";
-import { users } from "@/lib/schema";
 import { toast } from "sonner";
+import { deleteUser } from "@/app/actions/users";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,18 +16,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { format } from "date-fns";
-import { id } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
+import type { users } from "@/lib/schema";
+import { UserForm } from "./user-form";
 
 type UserListProps = {
-  users: typeof users.$inferSelect[];
+  users: (typeof users.$inferSelect)[];
 };
 
 export function UserList({ users: initialUsers }: UserListProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<typeof users.$inferSelect | null>(
-    null,
-  );
+  const [editingUser, setEditingUser] = useState<
+    typeof users.$inferSelect | null
+  >(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
 
@@ -50,7 +50,7 @@ export function UserList({ users: initialUsers }: UserListProps) {
         toast.success("User berhasil dihapus");
         setDeleteId(null);
       } catch (error) {
-        toast.error("Gagal menghapus user");
+        toast.error(`Gagal menghapus user: ${error}`);
       }
     });
   };
@@ -154,8 +154,8 @@ export function UserList({ users: initialUsers }: UserListProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Apakah anda yakin?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tindakan ini tidak dapat dibatalkan. User ini akan dihapus permanen
-              dari database.
+              Tindakan ini tidak dapat dibatalkan. User ini akan dihapus
+              permanen dari database.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -126,6 +126,7 @@ export function PatrolHistoryTable({ history }: Props) {
                     </td>
                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
                       <button
+                        type="button"
                         onClick={() =>
                           setSelectedGroup({
                             userName: group.userName,
@@ -156,12 +157,15 @@ export function PatrolHistoryTable({ history }: Props) {
                   Detail Check-In
                 </h3>
                 <button
+                  type="button"
                   onClick={() => setSelectedGroup(null)}
                   className="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400 transition-colors"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"
+                    role="img"
+                    aria-label="Close"
                     height="24"
                     viewBox="0 0 24 24"
                     fill="none"
@@ -187,7 +191,7 @@ export function PatrolHistoryTable({ history }: Props) {
                   .sort((a, b) => b.getTime() - a.getTime())
                   .map((time, i) => (
                     <div
-                      key={i}
+                      key={`${i}-${time.getTime()}`}
                       className="flex items-center justify-center p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-100 dark:border-gray-700 text-sm font-mono text-gray-700 dark:text-gray-300"
                     >
                       {format(time, "HH:mm:ss", { locale: id })}
@@ -198,6 +202,7 @@ export function PatrolHistoryTable({ history }: Props) {
 
             <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg flex justify-end">
               <button
+                type="button"
                 onClick={() => setSelectedGroup(null)}
                 className="px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded-md transition-colors"
               >

@@ -1,9 +1,12 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import * as z from "zod";
+import { createUser, updateUser } from "@/app/actions/users";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -26,10 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { createUser, updateUser } from "@/app/actions/users";
-import { toast } from "sonner";
-import { users } from "@/lib/schema";
+import type { users } from "@/lib/schema";
 
 const formSchema = z.object({
   name: z.string().min(1, "Nama wajib diisi"),
@@ -87,9 +87,7 @@ export function UserForm({ isOpen, onClose, user }: UserFormProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>
-            {user ? "Edit User" : "Tambah User Baru"}
-          </DialogTitle>
+          <DialogTitle>{user ? "Edit User" : "Tambah User Baru"}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -125,7 +123,9 @@ export function UserForm({ isOpen, onClose, user }: UserFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    {user ? "Password (Kosongkan jika tidak diubah)" : "Password"}
+                    {user
+                      ? "Password (Kosongkan jika tidak diubah)"
+                      : "Password"}
                   </FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="******" {...field} />

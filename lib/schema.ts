@@ -3,7 +3,6 @@ import {
   doublePrecision,
   integer,
   pgTable,
-  serial,
   text,
   time,
   timestamp,
@@ -51,6 +50,11 @@ export const patrolHistory = pgTable("patrol_history", {
     .references(() => locations.id)
     .notNull(),
   checkInTime: timestamp("check_in_time").defaultNow().notNull(),
+  status: text("status", { enum: ["aman", "tidak_aman"] })
+    .default("aman")
+    .notNull(),
+  notes: text("notes"),
+  imageData: text("image_data"), // Vercel Blob URL
 });
 
 export const usersRelations = relations(users, ({ many }) => ({

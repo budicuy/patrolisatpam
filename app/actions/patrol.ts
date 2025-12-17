@@ -8,6 +8,9 @@ export async function checkInPatrol(
   userId: string,
   shiftId: string,
   locationId: string,
+  status: "aman" | "tidak_aman" = "aman",
+  notes?: string,
+  imageData?: string,
 ) {
   try {
     await db.insert(patrolHistory).values({
@@ -15,6 +18,9 @@ export async function checkInPatrol(
       shiftId,
       locationId,
       checkInTime: new Date(),
+      status,
+      notes,
+      imageData,
     });
 
     revalidatePath("/patrol");
@@ -28,7 +34,13 @@ export async function checkInPatrol(
 export async function submitPatrolReport(
   userId: string,
   shiftId: string,
-  logs: { locationId: string; checkInTime: Date }[],
+  logs: {
+    locationId: string;
+    checkInTime: Date;
+    status: "aman" | "tidak_aman";
+    notes?: string;
+    imageData?: string;
+  }[],
 ) {
   try {
     if (!logs || logs.length === 0) {
@@ -39,7 +51,10 @@ export async function submitPatrolReport(
       userId,
       shiftId,
       locationId: log.locationId,
-      checkInTime: log.checkInTime, // Using client provided time, or could allow server override if needed, but client captured time is more accurate for "when they checked in" locally
+      checkInTime: log.checkInTime,
+      status: log.status,
+      notes: log.notes,
+      imageData: log.imageData, // base64 string
     }));
 
     await db.insert(patrolHistory).values(values);

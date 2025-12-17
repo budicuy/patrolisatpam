@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { locations, patrolHistory, users } from "@/lib/schema";
 
 async function getStats() {
+  "use server";
   const [locationCount] = await db.select({ value: count() }).from(locations);
   const [userCount] = await db.select({ value: count() }).from(users);
   const [patrolCount] = await db.select({ value: count() }).from(patrolHistory);

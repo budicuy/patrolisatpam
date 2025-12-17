@@ -1,9 +1,11 @@
 "use client";
 
+import imageCompression from "browser-image-compression";
 import { formatDistanceToNow } from "date-fns";
 import { id as dateFnsId } from "date-fns/locale";
 import { getDistance } from "geolib";
 import {
+  Camera,
   CheckCircle,
   Clock,
   Loader2,
@@ -11,11 +13,24 @@ import {
   Map as MapIcon,
   MapPin,
   RefreshCw,
+  X,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { submitPatrolReport } from "@/app/actions/patrol";
+import { uploadImage } from "@/app/actions/upload";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 // Dynamic import for Map to avoid SSR issues
 const PatrolMap = dynamic(() => import("./patrol-map"), {
@@ -72,12 +87,27 @@ export default function PatrolInterface({
   const [accuracy, setAccuracy] = useState<number | null>(null);
 
   // Batch Submission State
-  const [logs, setLogs] = useState<{ locationId: string; checkInTime: Date }[]>(
-    [],
-  );
+  const [logs, setLogs] = useState<
+    {
+      locationId: string;
+      checkInTime: Date;
+      status: "aman" | "tidak_aman";
+      notes?: string;
+      imageData?: string;
+    }[]
+  >([]);
   const [patrolStartTime, setPatrolStartTime] = useState<Date | null>(null);
   const [showSummary, setShowSummary] = useState(false);
   const [patrolEndTime, setPatrolEndTime] = useState<Date | null>(null);
+
+  // Check In Modal State
+  const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [checkInStatus, setCheckInStatus] = useState<"aman" | "tidak_aman">(
+    "aman",
+  );
+  const [checkInNote, setCheckInNote] = useState("");
+  const [checkInImage, setCheckInImage] = useState<string | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   // Initial Logic: Find first unvisited location based on order
   useEffect(() => {
@@ -205,10 +235,10 @@ export default function PatrolInterface({
     setIsPatrolling(true);
   };
 
-  const handleCheckIn = () => {
+  const handleCheckInClick = () => {
     if (!targetLocation || !distanceToTarget) return;
 
-    // Radius Validation (Allowing slight tolerance, e.g. 5 meters as requested, maybe 10 for GPS drift safety)
+    // Radius Validation
     if (distanceToTarget > (targetLocation.radius || 5)) {
       alert(
         `Anda belum berada dalam radius lokasi! Jarak: ${distanceToTarget}m`,
@@ -216,15 +246,76 @@ export default function PatrolInterface({
       return;
     }
 
-    // Add to local logs instead of submitting immediately
+    // Open Modal
+    setCheckInStatus("aman");
+    setCheckInNote("");
+    setCheckInImage(null);
+    setShowCheckInModal(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Ukuran file terlalu besar (max 5MB original)");
+      return;
+    }
+
+    setIsCompressing(true);
+    try {
+      const options = {
+        maxSizeMB: 0.1, // 100KB
+        maxWidthOrHeight: 800,
+        useWebWorker: true,
+      };
+
+      const compressedFile = await imageCompression(file, options);
+
+      // Verify strict 100KB limit after compression
+      if (compressedFile.size > 100 * 1024) {
+         alert("Gagal mengkompres gambar hingga di bawah 100KB. Silakan pilih gambar lain.");
+         setIsCompressing(false);
+         return;
+      }
+
+      // Convert to File again (browser-image-compression result is a Blob/File)
+      // Upload to Vercel Blob via Server Action
+      const formData = new FormData();
+      formData.append("file", compressedFile);
+
+      const uploadedUrl = await uploadImage(formData);
+      setCheckInImage(uploadedUrl);
+      setIsCompressing(false);
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Gagal mengupload gambar.");
+      setIsCompressing(false);
+    }
+  };
+
+  const confirmCheckIn = () => {
+    if (!targetLocation) return;
+
+    if (checkInStatus === "tidak_aman" && !checkInNote) {
+      alert("Mohon isi alasan kondisi tidak aman.");
+      return;
+    }
+
     const newLog = {
       locationId: targetLocation.id,
       checkInTime: new Date(),
+      status: checkInStatus,
+      notes: checkInNote || undefined,
+      imageData: checkInImage || undefined,
     };
 
     setLogs((prev) => [...prev, newLog]);
     setVisitedLocations((prev) => [...prev, targetLocation.id]);
-    alert("Check-in berhasil! Lanjutkan ke titik berikutnya.");
+    setShowCheckInModal(false);
+
+    // Optional: Show simple toast/alert via Sonner if available, or just standard alert/nothing
+    // alert("Check-in berhasil! Lanjutkan ke titik berikutnya.");
   };
 
   const handleFinishPatrol = async () => {
@@ -386,7 +477,7 @@ export default function PatrolInterface({
               </span>
               <button
                 type="button"
-                onClick={handleCheckIn}
+                onClick={handleCheckInClick}
                 disabled={
                   !distanceToTarget ||
                   distanceToTarget > (targetLocation.radius || 5) ||
@@ -483,11 +574,10 @@ export default function PatrolInterface({
                     <span className="text-gray-700 dark:text-gray-300">
                       {loc?.name || "Unknown"}
                     </span>
-                    <span className="text-gray-500 font-mono text-xs">
-                      {log.checkInTime.toLocaleTimeString("id-ID", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                    <span
+                      className={`font-mono text-xs px-2 py-0.5 rounded ${log.status === "aman" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                    >
+                      {log.status === "aman" ? "Aman" : "Bahaya"}
                     </span>
                   </div>
                 );
@@ -504,6 +594,128 @@ export default function PatrolInterface({
           </div>
         </div>
       )}
+
+      {/* Check In Modal */}
+      <Dialog open={showCheckInModal} onOpenChange={setShowCheckInModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Check In Lokasi</DialogTitle>
+            <DialogDescription>{targetLocation?.name}</DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4 py-4">
+            <div className="flex gap-4 justify-center">
+              <button
+                type="button"
+                onClick={() => setCheckInStatus("aman")}
+                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                  checkInStatus === "aman"
+                    ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20"
+                    : "border-gray-200 hover:border-green-200 text-gray-500"
+                }`}
+              >
+                <CheckCircle
+                  className={`h-8 w-8 ${checkInStatus === "aman" ? "fill-green-500 text-white" : ""}`}
+                />
+                <span className="font-bold">AMAN</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCheckInStatus("tidak_aman")}
+                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                  checkInStatus === "tidak_aman"
+                    ? "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20"
+                    : "border-gray-200 hover:border-red-200 text-gray-500"
+                }`}
+              >
+                <LogOut
+                  className={`h-8 w-8 ${checkInStatus === "tidak_aman" ? "fill-red-500 text-white" : ""}`}
+                />
+                <span className="font-bold">TIDAK AMAN</span>
+              </button>
+            </div>
+
+            {checkInStatus === "tidak_aman" && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                <div className="space-y-2">
+                  <Label>Keterangan / Alasan</Label>
+                  <textarea
+                    className="w-full min-h-[80px] rounded-md border border-gray-300 p-2 text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700"
+                    placeholder="Jelaskan kondisi tidak aman..."
+                    value={checkInNote}
+                    onChange={(e) => setCheckInNote(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Foto Bukti (Max 100KB - Auto Compress)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="upload-evidence"
+                    />
+                    <label
+                      htmlFor="upload-evidence"
+                      className="cursor-pointer flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <Camera className="h-5 w-5 text-gray-500" />
+                      <span className="text-sm text-gray-500">
+                        {isCompressing
+                          ? "Mengompres..."
+                          : "Ambil / Upload Foto"}
+                      </span>
+                    </label>
+                  </div>
+
+                  {checkInImage && (
+                    <div className="relative mt-2 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                      <img
+                        src={checkInImage}
+                        alt="Preview"
+                        className="w-full h-32 object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setCheckInImage(null)}
+                        className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white hover:bg-black/70"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowCheckInModal(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={confirmCheckIn}
+              disabled={
+                checkInStatus === "tidak_aman" &&
+                (!checkInNote || isCompressing)
+              }
+              className={
+                checkInStatus === "aman"
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-red-600 hover:bg-red-700"
+              }
+            >
+              {checkInStatus === "aman" ? "Check In Aman" : "Lapor Bahaya"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

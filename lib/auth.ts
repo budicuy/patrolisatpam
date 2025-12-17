@@ -25,7 +25,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           .from(users)
           .where(eq(users.username, username))
           .limit(1);
-
         if (userResults.length === 0) {
           return null;
         }

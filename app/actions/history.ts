@@ -1,3 +1,5 @@
+"use server";
+
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { locations, patrolHistory, shifts, users } from "@/lib/schema";
