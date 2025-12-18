@@ -104,7 +104,7 @@ export default function PatrolMap({
 
   return (
     <MapContainer
-      center={currentPosition || { lat: -6.2, lng: 106.8 }}
+      center={currentPosition || { lat: -3.549532, lng: 114.730076 }}
       zoom={15}
       scrollWheelZoom={true}
       style={{ height: "100%", width: "100%" }}
