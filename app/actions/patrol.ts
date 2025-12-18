@@ -1,9 +1,9 @@
 "use server";
 
+import { and, eq, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { patrolHistory, shifts } from "@/lib/schema";
-import { and, eq, gte, lte, desc, sql } from "drizzle-orm";
 
 // TIMEZONE CONFIGURATION
 // Indonesia Central Time (WITA) is UTC+8
@@ -11,7 +11,10 @@ const TIMEZONE_OFFSET_HOURS = 8;
 const TIMEZONE_OFFSET_MS = TIMEZONE_OFFSET_HOURS * 60 * 60 * 1000;
 
 // Helper to determine active shift window in specific timezone (WITA)
-function getShiftWindow(shift: { startTime: string; endTime: string }, now: Date = new Date()) {
+function getShiftWindow(
+  shift: { startTime: string; endTime: string },
+  now: Date = new Date(),
+) {
   // 1. Get current time in WITA components
   // We use UTC methods on a shifted date object to extract "local" components
   const nowWita = new Date(now.getTime() + TIMEZONE_OFFSET_MS);
@@ -26,8 +29,24 @@ function getShiftWindow(shift: { startTime: string; endTime: string }, now: Date
 
   // 2. Construct Start/End times in WITA context
   // Initially assume they are on the "current WITA day"
-  let startWitaTimestamp = Date.UTC(currentAuthorsYear, currentAuthorsMonth, currentAuthorsDate, startHour, startMinute, 0, 0);
-  let endWitaTimestamp = Date.UTC(currentAuthorsYear, currentAuthorsMonth, currentAuthorsDate, endHour, endMinute, 59, 999);
+  let startWitaTimestamp = Date.UTC(
+    currentAuthorsYear,
+    currentAuthorsMonth,
+    currentAuthorsDate,
+    startHour,
+    startMinute,
+    0,
+    0,
+  );
+  let endWitaTimestamp = Date.UTC(
+    currentAuthorsYear,
+    currentAuthorsMonth,
+    currentAuthorsDate,
+    endHour,
+    endMinute,
+    59,
+    999,
+  );
 
   // 3. Handle Overnight Shifts and Day Boundaries
   // Logic: Find the closest "valid" shift window relative to NOW.
@@ -35,7 +54,10 @@ function getShiftWindow(shift: { startTime: string; endTime: string }, now: Date
     // Overnight Shift (e.g., 23:00 - 07:00)
 
     // If currently in the morning (e.g., 05:00), the shift started yesterday
-    if (currentAuthorsHours < endHour || (currentAuthorsHours === endHour && currentAuthorsMinutes <= endMinute)) {
+    if (
+      currentAuthorsHours < endHour ||
+      (currentAuthorsHours === endHour && currentAuthorsMinutes <= endMinute)
+    ) {
       startWitaTimestamp -= 24 * 60 * 60 * 1000; // Start was yesterday
     } else {
       // If currently in the evening (e.g., 23:30), the shift ends tomorrow
@@ -59,7 +81,10 @@ export async function getPatrolProgress(shiftId: string) {
     if (!shift) return { visitedLocationIds: [] };
 
     // Use current server time, but logic inside handles WITA adjustment
-    const { start, end } = getShiftWindow({ startTime: shift.startTime, endTime: shift.endTime });
+    const { start, end } = getShiftWindow({
+      startTime: shift.startTime,
+      endTime: shift.endTime,
+    });
 
     const logs = await db
       .select({ locationId: patrolHistory.locationId })
@@ -68,11 +93,11 @@ export async function getPatrolProgress(shiftId: string) {
         and(
           eq(patrolHistory.shiftId, shiftId),
           gte(patrolHistory.checkInTime, start),
-          lte(patrolHistory.checkInTime, end)
-        )
+          lte(patrolHistory.checkInTime, end),
+        ),
       );
 
-    return { visitedLocationIds: logs.map(l => l.locationId) };
+    return { visitedLocationIds: logs.map((l) => l.locationId) };
   } catch (error) {
     console.error("Failed to get patrol progress", error);
     return { visitedLocationIds: [] };
@@ -97,10 +122,15 @@ export async function checkInPatrol(
 
     // 2. Validate Time (Shift Locking) with WITA
     const now = new Date();
-    const { start, end } = getShiftWindow({ startTime: shift.startTime, endTime: shift.endTime }, now);
+    const { start, end } = getShiftWindow(
+      { startTime: shift.startTime, endTime: shift.endTime },
+      now,
+    );
 
     if (now < start || now > end) {
-      throw new Error("Waktu patroli untuk shift ini sudah habis atau belum dimulai (Zona Waktu WITA).");
+      throw new Error(
+        "Waktu patroli untuk shift ini sudah habis atau belum dimulai (Zona Waktu WITA).",
+      );
     }
 
     // 3. Insert Log
@@ -116,13 +146,16 @@ export async function checkInPatrol(
 
     revalidatePath("/patrol");
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Check in failed", error);
-    return { error: error.message || "Gagal check in" };
+    const message = error instanceof Error ? error.message : "Gagal check in";
+    return { error: message };
   }
 }
 
-export async function getActiveShiftId(shiftsData: { id: string; startTime: string; endTime: string }[]) {
+export async function getActiveShiftId(
+  shiftsData: { id: string; startTime: string; endTime: string }[],
+) {
   const now = new Date();
 
   for (const shift of shiftsData) {

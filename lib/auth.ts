@@ -5,6 +5,16 @@ import Credentials from "next-auth/providers/credentials";
 import { db } from "./db";
 import { users } from "./schema";
 
+// Extend session user type
+interface ExtendedUser {
+  id?: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  username?: string;
+  role?: string;
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
@@ -52,17 +62,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as any).role;
-        token.id = user.id;
-        token.username = (user as any).username;
+        const extUser = user as ExtendedUser;
+        token.role = extUser.role;
+        token.id = extUser.id;
+        token.username = extUser.username;
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
-        (session.user as any).role = token.role;
-        (session.user as any).id = token.id;
-        (session.user as any).username = token.username;
+        const sessionUser = session.user as ExtendedUser;
+        sessionUser.role = token.role as string;
+        sessionUser.id = token.id as string;
+        sessionUser.username = token.username as string;
       }
       return session;
     },

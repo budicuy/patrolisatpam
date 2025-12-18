@@ -4,10 +4,19 @@ import { MapPin, Trash2 } from "lucide-react";
 import { useTransition } from "react";
 import { deleteLocation } from "@/app/actions/locations";
 
+interface Location {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  radius: number;
+  order: number;
+}
+
 export default function LocationList({
   initialLocations,
 }: {
-  initialLocations: any[];
+  initialLocations: Location[];
 }) {
   const [isPending, startTransition] = useTransition();
 

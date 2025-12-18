@@ -13,8 +13,8 @@ export async function createLocation(formData: FormData) {
   const name = formData.get("name") as string;
   const latitude = parseFloat(formData.get("latitude") as string);
   const longitude = parseFloat(formData.get("longitude") as string);
-  const radius = parseInt(formData.get("radius") as string) || 5;
-  const order = parseInt(formData.get("order") as string);
+  const radius = parseInt(formData.get("radius") as string, 10) || 5;
+  const order = parseInt(formData.get("order") as string, 10);
 
   const existing = await db.query.locations.findFirst({
     where: eq(locations.order, order),
@@ -50,8 +50,8 @@ export async function updateLocation(id: string, formData: FormData) {
   const name = formData.get("name") as string;
   const latitude = parseFloat(formData.get("latitude") as string);
   const longitude = parseFloat(formData.get("longitude") as string);
-  const radius = parseInt(formData.get("radius") as string) || 5;
-  const order = parseInt(formData.get("order") as string);
+  const radius = parseInt(formData.get("radius") as string, 10) || 5;
+  const order = parseInt(formData.get("order") as string, 10);
 
   const existing = await db.query.locations.findFirst({
     where: (locations, { and, ne, eq }) =>

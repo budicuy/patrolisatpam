@@ -16,8 +16,8 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image"; // Added Import
-import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
 import { checkInPatrol, getPatrolProgress } from "@/app/actions/patrol";
 import { uploadImage } from "@/app/actions/upload";
@@ -90,7 +90,9 @@ export default function PatrolInterface({
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null);
 
   // SECURE: Initialize with server-provided active shift ID
-  const [selectedShift, setSelectedShift] = useState<string>(initialActiveShiftId || "");
+  const [selectedShift, setSelectedShift] = useState<string>(
+    initialActiveShiftId || "",
+  );
   const [loading, setLoading] = useState(false);
 
   const [accuracy, setAccuracy] = useState<number | null>(null);
@@ -122,7 +124,6 @@ export default function PatrolInterface({
     year: "numeric",
   });
 
-
   // Auto-select active shift on mount (redundant but safe if prop updates)
   useEffect(() => {
     if (initialActiveShiftId) {
@@ -148,7 +149,6 @@ export default function PatrolInterface({
     }
   }, [isPatrolling, selectedShift, fetchProgress]);
 
-
   const confirmCheckIn = async () => {
     if (!targetLocation || !selectedShift) return;
 
@@ -159,7 +159,7 @@ export default function PatrolInterface({
 
     setLoading(true);
     try {
-      let finalImageUrl = undefined;
+      let finalImageUrl: string | undefined;
 
       // 1. Upload Image Immediate if exists
       if (checkInImageFile) {
@@ -180,7 +180,7 @@ export default function PatrolInterface({
         targetLocation.id,
         checkInStatus,
         checkInNote,
-        finalImageUrl
+        finalImageUrl,
       );
 
       if (result.error) {
@@ -272,7 +272,7 @@ export default function PatrolInterface({
         console.error("Error getting location", error);
         // Suppress repetitive alerts
         if (error.code === error.PERMISSION_DENIED) {
-          // alert("Izin lokasi ditolak."); 
+          // alert("Izin lokasi ditolak.");
         }
       },
       { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
@@ -294,7 +294,10 @@ export default function PatrolInterface({
           if (targetLocation) {
             const dist = getDistance(
               { latitude, longitude },
-              { latitude: targetLocation.latitude, longitude: targetLocation.longitude }
+              {
+                latitude: targetLocation.latitude,
+                longitude: targetLocation.longitude,
+              },
             );
             setDistanceToTarget(dist);
           }
@@ -305,7 +308,7 @@ export default function PatrolInterface({
           alert("Gagal refresh GPS. Cek sinyal.");
           setLoading(false);
         },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
       );
     });
   };
@@ -367,7 +370,7 @@ export default function PatrolInterface({
       setCheckInImageFile(fileToProcess);
       setCheckInImagePreview(URL.createObjectURL(fileToProcess));
     } catch (error) {
-      alert("Gagal proses gambar");
+      alert(`Gagal memproses gambar: ${error}`);
     } finally {
       setIsCompressing(false);
     }
@@ -423,33 +426,47 @@ export default function PatrolInterface({
             {shifts.map((shift) => {
               const active = shift.id === initialActiveShiftId;
               return (
-                <div
+                <button
+                  type="button"
                   key={shift.id}
                   onClick={() => active && setSelectedShift(shift.id)}
+                  onKeyDown={(e) => {
+                    if ((e.key === "Enter" || e.key === " ") && active) {
+                      setSelectedShift(shift.id);
+                    }
+                  }}
+                  disabled={!active}
                   className={cn(
-                    "flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all",
+                    "flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all w-full text-left",
                     selectedShift === shift.id
                       ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
                       : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-200",
-                    !active && "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-900"
+                    !active &&
+                      "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-900",
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-5 h-5 rounded-full border-2 flex items-center justify-center",
-                      selectedShift === shift.id
-                        ? "border-blue-600"
-                        : "border-gray-300 dark:border-gray-500"
-                    )}>
+                    <div
+                      className={cn(
+                        "w-5 h-5 rounded-full border-2 flex items-center justify-center",
+                        selectedShift === shift.id
+                          ? "border-blue-600"
+                          : "border-gray-300 dark:border-gray-500",
+                      )}
+                    >
                       {selectedShift === shift.id && (
                         <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
                       )}
                     </div>
                     <div className="text-left">
-                      <p className={cn(
-                        "font-bold",
-                        active ? "text-gray-900 dark:text-white" : "text-gray-500"
-                      )}>
+                      <p
+                        className={cn(
+                          "font-bold",
+                          active
+                            ? "text-gray-900 dark:text-white"
+                            : "text-gray-500",
+                        )}
+                      >
                         {shift.name}
                       </p>
                       <p className="text-sm text-gray-500">
@@ -468,7 +485,7 @@ export default function PatrolInterface({
                       Active
                     </span>
                   )}
-                </div>
+                </button>
               );
             })}
           </div>
@@ -569,12 +586,18 @@ export default function PatrolInterface({
                 }
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 disabled:bg-gray-400 transition-all shadow-sm active:scale-95"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "CHECK IN"}
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "CHECK IN"
+                )}
               </button>
             </div>
           </div>
         ) : loading ? (
-          <div className="text-center p-3 text-gray-500">Memuat status patroli...</div>
+          <div className="text-center p-3 text-gray-500">
+            Memuat status patroli...
+          </div>
         ) : (
           <div className="bg-green-50 p-3 rounded-lg border border-green-100 text-center dark:bg-green-900/20 dark:border-green-800">
             <p className="text-green-700 font-bold flex items-center justify-center dark:text-green-400 mb-2">
@@ -662,10 +685,11 @@ export default function PatrolInterface({
               <button
                 type="button"
                 onClick={() => setCheckInStatus("aman")}
-                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${checkInStatus === "aman"
-                  ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20"
-                  : "border-gray-200 hover:border-green-200 text-gray-500"
-                  }`}
+                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                  checkInStatus === "aman"
+                    ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20"
+                    : "border-gray-200 hover:border-green-200 text-gray-500"
+                }`}
               >
                 <CheckCircle
                   className={`h-8 w-8 ${checkInStatus === "aman" ? "fill-green-500 text-white" : ""}`}
@@ -676,10 +700,11 @@ export default function PatrolInterface({
               <button
                 type="button"
                 onClick={() => setCheckInStatus("tidak_aman")}
-                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${checkInStatus === "tidak_aman"
-                  ? "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20"
-                  : "border-gray-200 hover:border-red-200 text-gray-500"
-                  }`}
+                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                  checkInStatus === "tidak_aman"
+                    ? "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20"
+                    : "border-gray-200 hover:border-red-200 text-gray-500"
+                }`}
               >
                 <LogOut
                   className={`h-8 w-8 ${checkInStatus === "tidak_aman" ? "fill-red-500 text-white" : ""}`}
@@ -759,10 +784,23 @@ export default function PatrolInterface({
             </Button>
             <Button
               onClick={confirmCheckIn}
-              disabled={checkInStatus === 'tidak_aman' && (!checkInNote || isCompressing)}
-              className={checkInStatus === 'aman' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+              disabled={
+                checkInStatus === "tidak_aman" &&
+                (!checkInNote || isCompressing)
+              }
+              className={
+                checkInStatus === "aman"
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-red-600 hover:bg-red-700"
+              }
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (checkInStatus === 'aman' ? 'Check In Aman' : 'Lapor Bahaya')}
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : checkInStatus === "aman" ? (
+                "Check In Aman"
+              ) : (
+                "Lapor Bahaya"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

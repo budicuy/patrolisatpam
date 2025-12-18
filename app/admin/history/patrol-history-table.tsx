@@ -3,6 +3,7 @@
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { Edit, Trash2 } from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
 import { deletePatrolLog, updatePatrolLog } from "@/app/actions/history";
 import {
@@ -60,7 +61,7 @@ export function PatrolHistoryTable({ history }: Props) {
         // Close modal or refresh - simplicity: close modal
         setSelectedGroup(null);
       }
-    } catch (e) {
+    } catch {
       alert("Gagal menghapus");
     }
   };
@@ -78,7 +79,7 @@ export function PatrolHistoryTable({ history }: Props) {
         setEditingLog(null);
         setSelectedGroup(null); // Force refresh by closing
       }
-    } catch (e) {
+    } catch {
       alert("Gagal update");
     }
   };
@@ -323,10 +324,13 @@ export function PatrolHistoryTable({ history }: Props) {
                               rel="noopener noreferrer"
                               className="block overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 group relative"
                             >
-                              <img
+                              <Image
                                 src={log.imageData}
                                 alt="Bukti Keamanan"
+                                width={400}
+                                height={192}
                                 className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105"
+                                unoptimized
                               />
                               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                                 <span className="bg-white/90 text-gray-900 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">

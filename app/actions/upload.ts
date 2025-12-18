@@ -19,4 +19,3 @@ export async function uploadImage(formData: FormData) {
 
   return blob.url;
 }
-    

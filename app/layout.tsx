@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Poppins, Quicksand } from "next/font/google";
+import { Poppins, Quicksand } from "next/font/google";
 import "./globals.css";
 import SessionProvider from "@/components/providers/session-provider";
-
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -14,7 +13,6 @@ const quicksand = Quicksand({
   subsets: ["latin"],
   variable: "--font-quicksand",
 });
-
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -28,9 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${poppins.variable} ${quicksand.variable} antialiased`}
-      >
+      <body className={`${poppins.variable} ${quicksand.variable} antialiased`}>
         <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
