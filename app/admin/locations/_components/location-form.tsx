@@ -18,9 +18,9 @@ const LocationMapPicker = dynamic(() => import("./map-picker"), {
 export default function LocationForm() {
   const [loading, setLoading] = useState(false);
   const [coordinates, setCoordinates] = useState({
-    lat: -6.2088,
-    lng: 106.8456,
-  }); // Default Jakarta
+    lat: -3.549532,
+    lng: 114.730076,
+  }); // Default Location
 
   const [message, setMessage] = useState<{
     type: "success" | "error";

@@ -10,7 +10,7 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { Loader2, Locate } from "lucide-react";
+import { Loader2, Locate, Maximize, Minimize } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 // Simple coordinate interface for external use
@@ -114,7 +114,7 @@ export default function MapPicker({
     ? [position.lat, position.lng]
     : userPosition
       ? [userPosition.lat, userPosition.lng]
-      : [-3.549538, 114.730745]; // Default to Kantor Utama
+      : [-3.549532, 114.730076]; // Default Location
 
   return (
     <div className="relative h-full w-full">
@@ -125,8 +125,8 @@ export default function MapPicker({
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
         <LocationMarker
           position={position}
@@ -134,12 +134,101 @@ export default function MapPicker({
         />
         <UserLocationMarker onUserLocationFound={handleUserLocationFound} />
         <MyLocationButton />
+        <FullscreenButton />
       </MapContainer>
       {accuracy && (
         <div className="absolute bottom-2 left-2 z-1000 bg-white/90 dark:bg-gray-800/90 px-2 py-1 rounded text-xs text-gray-600 dark:text-gray-300 shadow">
           GPS Akurasi: ~{Math.round(accuracy)}m
         </div>
       )}
+    </div>
+  );
+}
+
+function FullscreenButton() {
+  const map = useMap();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const divRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (divRef.current) {
+      L.DomEvent.disableClickPropagation(divRef.current);
+      L.DomEvent.disableScrollPropagation(divRef.current);
+    }
+  }, []);
+
+  const toggleFullscreen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    const container = map.getContainer();
+
+    if (!document.fullscreenElement) {
+      container
+        .requestFullscreen()
+        .then(() => {
+          setIsFullscreen(true);
+        })
+        .catch((err) => {
+          console.error(
+            `Error attempting to enable fullscreen: ${err.message}`,
+          );
+        });
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+      });
+    }
+  };
+
+  // Listen to fullscreen change events (e.g. user pressing ESC)
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      // Force map to resize/invalidate size after transition
+      setTimeout(() => map.invalidateSize(), 100);
+    };
+
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, [map]);
+
+  return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: Overlay intentionally blocks map interactions
+    // biome-ignore lint/a11y/noStaticElementInteractions: Overlay intentionally blocks map interactions
+    <div
+      ref={divRef}
+      className="absolute top-16 right-4 z-1000"
+      onClick={(e) => {
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+      }}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+      }}
+      onMouseUp={(e) => {
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+      }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+      }}
+    >
+      <button
+        type="button"
+        onClick={toggleFullscreen}
+        className="flex items-center justify-center rounded-md bg-white p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:hover:bg-gray-700"
+        title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
+      >
+        {isFullscreen ? (
+          <Minimize className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+        ) : (
+          <Maximize className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+        )}
+      </button>
     </div>
   );
 }

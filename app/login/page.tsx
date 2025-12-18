@@ -4,18 +4,17 @@ import { Lock, Shield, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useState } from "react";
+import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
 
     try {
       const result = await signIn("credentials", {
@@ -25,14 +24,15 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Login gagal. Periksa username dan password Anda.");
+        toast.error("Login gagal. Periksa username dan password Anda.");
       } else {
+        toast.success("Login berhasil! Mengalihkan...");
         router.refresh();
         // Middleware will redirect based on role
       }
     } catch (error) {
       console.error(error);
-      setError("Terjadi kesalahan sistem.");
+      toast.error("Terjadi kesalahan sistem.");
     } finally {
       setLoading(false);
     }
@@ -86,12 +86,6 @@ export default function LoginPage() {
               />
             </div>
           </div>
-
-          {error && (
-            <div className="rounded-md bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
-              {error}
-            </div>
-          )}
 
           <div>
             <button
