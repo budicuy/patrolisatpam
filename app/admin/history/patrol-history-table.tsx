@@ -142,26 +142,24 @@ export function PatrolHistoryTable({ history }: Props) {
 
   return (
     <>
-      <div className="rounded-xl bg-white shadow-md dark:bg-gray-800 overflow-hidden">
+      <div className="rounded-xl bg-white shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-700/50">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                <th className="px-6 py-4 font-semibold text-gray-900">
                   Petugas
                 </th>
-                <th className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                <th className="px-6 py-4 font-semibold text-gray-900">
                   Lokasi
                 </th>
-                <th className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-                  Shift
-                </th>
-                <th className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                <th className="px-6 py-4 font-semibold text-gray-900">Shift</th>
+                <th className="px-6 py-4 font-semibold text-gray-900">
                   Waktu Check-In
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-200">
               {groupedHistory.length === 0 ? (
                 <tr>
                   <td
@@ -175,9 +173,9 @@ export function PatrolHistoryTable({ history }: Props) {
                 groupedHistory.map((group) => (
                   <tr
                     key={group.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                    className="hover:bg-gray-50 transition-colors"
                   >
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                    <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
                       <div className="flex flex-col">
                         <span>{group.userName}</span>
                         <span className="text-xs text-gray-500">
@@ -185,22 +183,22 @@ export function PatrolHistoryTable({ history }: Props) {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 text-gray-500">
                       <div className="flex flex-wrap gap-1">
                         {Array.from(group.locations).map((loc) => (
                           <span
                             key={loc}
-                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
                           >
                             {loc}
                           </span>
                         ))}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    <td className="px-6 py-4 text-gray-500 whitespace-nowrap">
                       {Array.from(group.shifts).join(", ")}
                     </td>
-                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 text-gray-500">
                       <button
                         type="button"
                         onClick={() =>
@@ -210,7 +208,7 @@ export function PatrolHistoryTable({ history }: Props) {
                             logs: group.logs,
                           })
                         }
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-sm underline decoration-blue-600/30 hover:decoration-blue-600 transition-all"
+                        className="text-blue-600 hover:text-blue-800 font-medium text-sm underline decoration-blue-600/30 hover:decoration-blue-600 transition-all"
                       >
                         Lihat Detail ({group.logs.length} Check-in)
                       </button>
@@ -226,16 +224,16 @@ export function PatrolHistoryTable({ history }: Props) {
       {/* Detail Modal */}
       {selectedGroup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-100 dark:border-gray-800 pb-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-100 pb-4">
               <div className="flex items-center justify-between mb-1">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                <h3 className="text-xl font-bold text-gray-900">
                   Detail Check-In
                 </h3>
                 <button
                   type="button"
                   onClick={() => setSelectedGroup(null)}
-                  className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-500 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-400 transition-all"
+                  className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-500"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -255,8 +253,8 @@ export function PatrolHistoryTable({ history }: Props) {
                   </svg>
                 </button>
               </div>
-              <div className="flex flex-col text-sm text-gray-500 dark:text-gray-400">
-                <span className="font-medium text-gray-900 dark:text-gray-200">
+              <div className="flex flex-col text-sm text-gray-500">
+                <span className="font-medium text-gray-900">
                   {selectedGroup.userName}
                 </span>
                 <span>
@@ -267,7 +265,7 @@ export function PatrolHistoryTable({ history }: Props) {
               </div>
             </div>
 
-            <div className="overflow-y-auto p-6 space-y-4 bg-gray-50/50 dark:bg-gray-900/50">
+            <div className="overflow-y-auto p-6 space-y-4 bg-gray-50/50">
               {selectedGroup.logs
                 .sort((a, b) => b.time.getTime() - a.time.getTime())
                 .map((log, i) => (
@@ -275,26 +273,26 @@ export function PatrolHistoryTable({ history }: Props) {
                     key={`${i}-${log.time.getTime()}`}
                     className={`flex flex-col p-4 rounded-xl border ${
                       log.status === "tidak_aman"
-                        ? "bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-800/50"
-                        : "bg-white border-gray-100 dark:bg-gray-800 dark:border-gray-700"
+                        ? "bg-red-50 border-red-100"
+                        : "bg-white border-gray-100"
                     } shadow-sm`}
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <div className="text-sm font-bold text-gray-900 dark:text-white mb-1">
+                        <div className="text-sm font-bold text-gray-900 mb-1">
                           {log.locationName || "Unknown Location"}
                         </div>
                         <div className="flex items-center gap-2">
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
                               log.status === "tidak_aman"
-                                ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200"
-                                : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-green-100 text-green-700"
                             }`}
                           >
                             {log.status === "tidak_aman" ? "BAHAYA" : "AMAN"}
                           </span>
-                          <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                          <span className="text-xs text-gray-500 font-mono">
                             {format(log.time, "HH:mm:ss", { locale: id })}
                           </span>
                         </div>
@@ -302,13 +300,13 @@ export function PatrolHistoryTable({ history }: Props) {
                     </div>
 
                     {log.status === "tidak_aman" && (
-                      <div className="mt-2 space-y-3 pt-3 border-t border-red-100 dark:border-red-800/30">
+                      <div className="mt-2 space-y-3 pt-3 border-t border-red-100">
                         {log.notes && (
                           <div className="text-sm">
                             <span className="block text-xs font-semibold text-gray-500 uppercase mb-1">
                               Keterangan:
                             </span>
-                            <p className="text-gray-800 dark:text-gray-200 bg-white/50 dark:bg-black/20 p-2 rounded-lg">
+                            <p className="text-gray-800 bg-white/50 p-2 rounded-lg">
                               {log.notes}
                             </p>
                           </div>
@@ -322,7 +320,7 @@ export function PatrolHistoryTable({ history }: Props) {
                               href={log.imageData}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="block overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 group relative"
+                              className="block overflow-hidden rounded-lg border border-gray-200 group relative"
                             >
                               <Image
                                 src={log.imageData}
@@ -343,7 +341,7 @@ export function PatrolHistoryTable({ history }: Props) {
                       </div>
                     )}
 
-                    <div className="mt-3 flex gap-2 justify-end border-t border-gray-100 dark:border-gray-800 pt-2">
+                    <div className="mt-3 flex gap-2 justify-end border-t border-gray-100 pt-2">
                       <button
                         type="button"
                         onClick={() =>
@@ -371,11 +369,11 @@ export function PatrolHistoryTable({ history }: Props) {
                 ))}
             </div>
 
-            <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 rounded-b-2xl flex justify-end">
+            <div className="p-4 border-t border-gray-100 bg-white rounded-b-2xl flex justify-end">
               <button
                 type="button"
                 onClick={() => setSelectedGroup(null)}
-                className="px-6 py-2.5 text-sm font-bold text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded-xl transition-all shadow-sm hover:shadow"
+                className="px-6 py-2.5 text-sm font-bold text-white bg-gray-900 hover:bg-gray-800 rounded-xl transition-all shadow-sm hover:shadow"
               >
                 Tutup
               </button>

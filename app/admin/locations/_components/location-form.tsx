@@ -59,7 +59,7 @@ export default function LocationForm() {
       <div>
         <label
           htmlFor="name"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          className="block text-sm font-medium text-gray-700"
         >
           Nama Gedung/Lokasi
         </label>
@@ -67,7 +67,7 @@ export default function LocationForm() {
           type="text"
           name="name"
           required
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder="Contoh: Gedung A"
         />
       </div>
@@ -76,7 +76,7 @@ export default function LocationForm() {
         <div>
           <label
             htmlFor="radius"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            className="block text-sm font-medium text-gray-700"
           >
             Radius (Meter)
           </label>
@@ -85,13 +85,13 @@ export default function LocationForm() {
             name="radius"
             defaultValue={5}
             required
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           />
         </div>
         <div>
           <label
             htmlFor="order"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            className="block text-sm font-medium text-gray-700"
           >
             Urutan Patroli
           </label>
@@ -100,7 +100,7 @@ export default function LocationForm() {
             name="order"
             defaultValue={1}
             required
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           />
         </div>
       </div>
@@ -108,11 +108,11 @@ export default function LocationForm() {
       <div className="space-y-2">
         <label
           htmlFor="position"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          className="block text-sm font-medium text-gray-700"
         >
           Pilih Titik Lokasi
         </label>
-        <div className="h-64 w-full rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+        <div className="h-64 w-full rounded-lg overflow-hidden border border-gray-300">
           <LocationMapPicker
             position={coordinates}
             onPositionChange={setCoordinates}

@@ -137,7 +137,7 @@ export default function MapPicker({
         <FullscreenButton />
       </MapContainer>
       {accuracy && (
-        <div className="absolute bottom-2 left-2 z-1000 bg-white/90 dark:bg-gray-800/90 px-2 py-1 rounded text-xs text-gray-600 dark:text-gray-300 shadow">
+        <div className="absolute bottom-2 left-2 z-1000 bg-white/90 px-2 py-1 rounded text-xs text-gray-600 shadow">
           GPS Akurasi: ~{Math.round(accuracy)}m
         </div>
       )}
@@ -220,13 +220,13 @@ function FullscreenButton() {
       <button
         type="button"
         onClick={toggleFullscreen}
-        className="flex items-center justify-center rounded-md bg-white p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:hover:bg-gray-700"
+        className="flex items-center justify-center rounded-md bg-white p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
       >
         {isFullscreen ? (
-          <Minimize className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+          <Minimize className="h-5 w-5 text-gray-700" />
         ) : (
-          <Maximize className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+          <Maximize className="h-5 w-5 text-gray-700" />
         )}
       </button>
     </div>
@@ -304,13 +304,13 @@ function MyLocationButton() {
         type="button"
         onClick={handleLocate}
         disabled={isLocating}
-        className="flex items-center justify-center rounded-md bg-white p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:hover:bg-gray-700 disabled:opacity-50"
+        className="flex items-center justify-center rounded-md bg-white p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
         title="Lokasi Saya (High Accuracy GPS)"
       >
         {isLocating ? (
           <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
         ) : (
-          <Locate className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+          <Locate className="h-5 w-5 text-gray-700" />
         )}
       </button>
     </div>

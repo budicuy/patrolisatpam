@@ -13,14 +13,14 @@ export default async function LocationsPage() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="rounded-xl bg-white p-6 shadow-md dark:bg-gray-800">
+          <div className="rounded-xl bg-white p-6 shadow-md">
             <h2 className="mb-4 text-xl font-semibold">Daftar Lokasi</h2>
             <LocationList initialLocations={locations} />
           </div>
         </div>
 
         <div className="lg:col-span-1">
-          <div className="rounded-xl bg-white p-6 shadow-md dark:bg-gray-800">
+          <div className="rounded-xl bg-white p-6 shadow-md">
             <h2 className="mb-4 text-xl font-semibold">Tambah Lokasi Baru</h2>
             <LocationForm />
           </div>

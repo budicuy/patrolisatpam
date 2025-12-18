@@ -396,30 +396,28 @@ export default function PatrolInterface({
 
   if (!isPatrolling) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center bg-gray-50 p-4 dark:bg-gray-900">
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl dark:bg-gray-800 text-center">
-          <div className="mb-6 mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
-            <MapPin className="h-10 w-10 text-blue-600 dark:text-blue-400" />
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-gray-50 p-4">
+        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl text-center">
+          <div className="mb-6 mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-blue-100">
+            <MapPin className="h-10 w-10 text-blue-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Mulai Patroli
           </h1>
           <p className="text-gray-500 mb-6">
             Pilih shift jaga Anda untuk memulai pemantauan.
           </p>
 
-          <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex flex-col items-center justify-center border border-gray-200 dark:border-gray-600">
-            <div className="flex items-center gap-2 mb-1 text-gray-500 dark:text-gray-400 text-sm font-medium">
+          <div className="mb-6 p-4 bg-gray-100 rounded-xl flex flex-col items-center justify-center border border-gray-200">
+            <div className="flex items-center gap-2 mb-1 text-gray-500 text-sm font-medium">
               <Clock className="w-4 h-4" />
               Waktu Sekarang (WITA)
               <br />
             </div>
-            <div className="text-3xl font-mono font-bold text-gray-900 dark:text-white tracking-wider">
+            <div className="text-3xl font-mono font-bold text-gray-900 tracking-wider">
               {formattedTime}
             </div>
-            <div className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-              {formattedDate}
-            </div>
+            <div className="text-sm text-gray-400 mt-1">{formattedDate}</div>
           </div>
 
           <div className="mb-8 space-y-3">
@@ -439,10 +437,9 @@ export default function PatrolInterface({
                   className={cn(
                     "flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all w-full text-left",
                     selectedShift === shift.id
-                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                      : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-200",
-                    !active &&
-                      "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-900",
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 bg-white hover:border-blue-200",
+                    !active && "opacity-50 cursor-not-allowed bg-gray-100",
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -451,7 +448,7 @@ export default function PatrolInterface({
                         "w-5 h-5 rounded-full border-2 flex items-center justify-center",
                         selectedShift === shift.id
                           ? "border-blue-600"
-                          : "border-gray-300 dark:border-gray-500",
+                          : "border-gray-300",
                       )}
                     >
                       {selectedShift === shift.id && (
@@ -462,9 +459,7 @@ export default function PatrolInterface({
                       <p
                         className={cn(
                           "font-bold",
-                          active
-                            ? "text-gray-900 dark:text-white"
-                            : "text-gray-500",
+                          active ? "text-gray-900" : "text-gray-500",
                         )}
                       >
                         {shift.name}
@@ -476,7 +471,7 @@ export default function PatrolInterface({
                   </div>
 
                   {!active && (
-                    <span className="text-xs font-mono px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-gray-500">
+                    <span className="text-xs font-mono px-2 py-1 bg-gray-200 rounded text-gray-500">
                       Closed
                     </span>
                   )}
@@ -502,7 +497,7 @@ export default function PatrolInterface({
           <button
             type="button"
             onClick={() => signOut()}
-            className="mt-4 w-full flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-6 py-4 text-lg font-bold text-red-600 transition-all hover:bg-red-100 dark:border-red-900 dark:bg-red-900/20 dark:text-red-400"
+            className="mt-4 w-full flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-6 py-4 text-lg font-bold text-red-600 transition-all hover:bg-red-100"
           >
             <LogOut className="mr-2 h-5 w-5" />
             LOGOUT
@@ -513,12 +508,12 @@ export default function PatrolInterface({
   }
 
   return (
-    <div className="flex flex-col h-dvh bg-gray-100 dark:bg-gray-900 relative">
+    <div className="flex flex-col h-dvh bg-gray-100 relative">
       {/* Top Status Bar */}
-      <div className="bg-white p-4 shadow-md z-10 dark:bg-gray-800 absolute top-4 left-4 right-4 rounded-xl">
+      <div className="bg-white p-4 shadow-md z-10 absolute top-4 left-4 right-4 rounded-xl">
         <div className="flex justify-between items-center mb-2">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+            <h2 className="text-lg font-bold text-gray-900">
               {user?.name || "Patroli"}
             </h2>
             <div className="flex items-center text-xs text-gray-500 space-x-2">
@@ -539,7 +534,7 @@ export default function PatrolInterface({
             <button
               type="button"
               onClick={handleManualRefresh}
-              className="rounded-full p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400"
+              className="rounded-full p-2 bg-blue-50 text-blue-600 hover:bg-blue-100"
               title="Refresh Lokasi dan GPS"
             >
               <RefreshCw
@@ -549,7 +544,7 @@ export default function PatrolInterface({
             <div
               className={`h-3 w-3 rounded-full ${currentPosition ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
             ></div>
-            <span className="text-xs font-mono">
+            <span className="text-xs font-mono text-gray-500">
               {currentPosition
                 ? distanceToTarget !== null
                   ? `${Math.round(distanceToTarget)}m`
@@ -559,7 +554,7 @@ export default function PatrolInterface({
             <button
               type="button"
               onClick={() => signOut()}
-              className="ml-2 rounded-full p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+              className="ml-2 rounded-full p-2 text-gray-500 hover:bg-gray-100"
             >
               <LogOut className="h-5 w-5" />
             </button>
@@ -567,13 +562,13 @@ export default function PatrolInterface({
         </div>
 
         {targetLocation ? (
-          <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 dark:bg-blue-900/20 dark:border-blue-800">
-            <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1 dark:text-blue-400">
+          <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+            <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1">
               Tujuan Berikutnya
             </p>
 
             <div className="flex justify-between items-center">
-              <span className="font-semibold text-gray-800 dark:text-gray-200">
+              <span className="font-semibold text-gray-800">
                 {targetLocation.name}
               </span>
               <button
@@ -599,8 +594,8 @@ export default function PatrolInterface({
             Memuat status patroli...
           </div>
         ) : (
-          <div className="bg-green-50 p-3 rounded-lg border border-green-100 text-center dark:bg-green-900/20 dark:border-green-800">
-            <p className="text-green-700 font-bold flex items-center justify-center dark:text-green-400 mb-2">
+          <div className="bg-green-50 p-3 rounded-lg border border-green-100 text-center">
+            <p className="text-green-700 font-bold flex items-center justify-center mb-2">
               <CheckCircle className="mr-2 h-5 w-5" />
               Semua Lokasi Terkunjungi!
             </p>
@@ -627,35 +622,33 @@ export default function PatrolInterface({
       {/* Summary Modal */}
       {showSummary && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 dark:bg-gray-800 animate-in fade-in zoom-in duration-300">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 animate-in fade-in zoom-in duration-300">
             <div className="text-center mb-6">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 mb-4 dark:bg-green-900/30">
-                <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 mb-4">
+                <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h3 className="text-2xl font-bold text-gray-900">
                 Patroli Selesai!
               </h3>
-              <p className="text-gray-500 dark:text-gray-400">
-                Laporan berhasil disimpan.
-              </p>
+              <p className="text-gray-500">Laporan berhasil disimpan.</p>
             </div>
 
-            <div className="bg-gray-50 rounded-xl p-4 mb-6 dark:bg-gray-700/50 space-y-3">
-              <div className="flex justify-between items-center border-b border-gray-200 pb-2 dark:border-gray-600">
-                <div className="flex items-center text-gray-600 dark:text-gray-300">
+            <div className="bg-gray-50 rounded-xl p-4 mb-6 space-y-3">
+              <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                <div className="flex items-center text-gray-600">
                   <Clock className="h-4 w-4 mr-2" />
                   <span>Durasi Patroli</span>
                 </div>
-                <span className="font-bold text-gray-900 dark:text-white">
+                <span className="font-bold text-gray-900">
                   {getPatrolDuration()}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <div className="flex items-center text-gray-600 dark:text-gray-300">
+                <div className="flex items-center text-gray-600">
                   <MapPin className="h-4 w-4 mr-2" />
                   <span>Total Lokasi</span>
                 </div>
-                <span className="font-bold text-gray-900 dark:text-white">
+                <span className="font-bold text-gray-900">
                   {visitedLocations.length} / {locations.length} Titik
                 </span>
               </div>
@@ -687,7 +680,7 @@ export default function PatrolInterface({
                 onClick={() => setCheckInStatus("aman")}
                 className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
                   checkInStatus === "aman"
-                    ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20"
+                    ? "border-green-500 bg-green-50 text-green-700"
                     : "border-gray-200 hover:border-green-200 text-gray-500"
                 }`}
               >
@@ -702,7 +695,7 @@ export default function PatrolInterface({
                 onClick={() => setCheckInStatus("tidak_aman")}
                 className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
                   checkInStatus === "tidak_aman"
-                    ? "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20"
+                    ? "border-red-500 bg-red-50 text-red-700"
                     : "border-gray-200 hover:border-red-200 text-gray-500"
                 }`}
               >
@@ -718,7 +711,7 @@ export default function PatrolInterface({
                 <div className="space-y-2">
                   <Label>Keterangan / Alasan</Label>
                   <textarea
-                    className="w-full min-h-[80px] rounded-md border border-gray-300 p-2 text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700"
+                    className="w-full min-h-[80px] rounded-md border border-gray-300 p-2 text-sm focus:border-blue-500 focus:ring-blue-500"
                     placeholder="Jelaskan kondisi tidak aman..."
                     value={checkInNote}
                     onChange={(e) => setCheckInNote(e.target.value)}
@@ -737,7 +730,7 @@ export default function PatrolInterface({
                     />
                     <label
                       htmlFor="upload-evidence"
-                      className="cursor-pointer flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="cursor-pointer flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <Camera className="h-5 w-5 text-gray-500" />
                       <span className="text-sm text-gray-500">
@@ -749,7 +742,7 @@ export default function PatrolInterface({
                   </div>
 
                   {checkInImagePreview && (
-                    <div className="relative mt-2 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                    <div className="relative mt-2 rounded-lg overflow-hidden border border-gray-200">
                       <Image
                         src={checkInImagePreview}
                         alt="Preview"

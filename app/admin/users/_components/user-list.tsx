@@ -63,29 +63,23 @@ export function UserList({ users: initialUsers }: UserListProps) {
         </Button>
       </div>
 
-      <div className="rounded-xl bg-white shadow-md dark:bg-gray-800 overflow-hidden">
+      <div className="rounded-xl bg-white shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-700/50">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-                  Nama
-                </th>
-                <th className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                <th className="px-6 py-4 font-semibold text-gray-900">Nama</th>
+                <th className="px-6 py-4 font-semibold text-gray-900">
                   Username
                 </th>
-                <th className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-                  Role
-                </th>
-                <th className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                <th className="px-6 py-4 font-semibold text-gray-900">Role</th>
+                <th className="px-6 py-4 font-semibold text-gray-900">
                   Dibuat Pada
                 </th>
-                <th className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-                  Aksi
-                </th>
+                <th className="px-6 py-4 font-semibold text-gray-900">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-200">
               {initialUsers.length === 0 ? (
                 <tr>
                   <td
@@ -99,18 +93,16 @@ export function UserList({ users: initialUsers }: UserListProps) {
                 initialUsers.map((user) => (
                   <tr
                     key={user.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                    className="hover:bg-gray-50 transition-colors"
                   >
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                    <td className="px-6 py-4 font-medium text-gray-900">
                       {user.name}
                     </td>
-                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
-                      {user.username}
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400 capitalize">
+                    <td className="px-6 py-4 text-gray-500">{user.username}</td>
+                    <td className="px-6 py-4 text-gray-500 capitalize">
                       {user.role}
                     </td>
-                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 text-gray-500">
                       {user.createdAt
                         ? format(new Date(user.createdAt), "dd MMM yyyy", {
                             locale: id,

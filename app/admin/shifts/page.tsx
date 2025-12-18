@@ -11,13 +11,13 @@ export default async function ShiftsPage() {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Form */}
         <div className="lg:col-span-1">
-          <div className="rounded-xl bg-white p-6 shadow-md dark:bg-gray-800">
+          <div className="rounded-xl bg-white p-6 shadow-md">
             <h2 className="mb-4 text-xl font-semibold">Tambah Shift Baru</h2>
             <form action={createShift} className="space-y-4">
               <div>
                 <label
                   htmlFor="name"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  className="block text-sm font-medium text-gray-700"
                 >
                   Nama Shift
                 </label>
@@ -26,7 +26,7 @@ export default async function ShiftsPage() {
                   name="name"
                   placeholder="Contoh: Shift Pagi"
                   required
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                 />
               </div>
 
@@ -34,7 +34,7 @@ export default async function ShiftsPage() {
                 <div>
                   <label
                     htmlFor="startTime"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                    className="block text-sm font-medium text-gray-700"
                   >
                     Jam Mulai
                   </label>
@@ -42,13 +42,13 @@ export default async function ShiftsPage() {
                     type="time"
                     name="startTime"
                     required
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                   />
                 </div>
                 <div>
                   <label
                     htmlFor="endTime"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                    className="block text-sm font-medium text-gray-700"
                   >
                     Jam Selesai
                   </label>
@@ -56,7 +56,7 @@ export default async function ShiftsPage() {
                     type="time"
                     name="endTime"
                     required
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -74,7 +74,7 @@ export default async function ShiftsPage() {
 
         {/* List */}
         <div className="lg:col-span-2">
-          <div className="rounded-xl bg-white p-6 shadow-md dark:bg-gray-800">
+          <div className="rounded-xl bg-white p-6 shadow-md">
             <h2 className="mb-4 text-xl font-semibold">Daftar Shift</h2>
             <div className="space-y-4">
               {shifts.length === 0 ? (
@@ -85,17 +85,17 @@ export default async function ShiftsPage() {
                 shifts.map((shift) => (
                   <div
                     key={shift.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50 gap-4"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 gap-4"
                   >
                     <div className="flex items-center space-x-4 w-full">
-                      <div className="rounded-full bg-orange-100 p-2 dark:bg-orange-900/30 shrink-0">
-                        <Clock className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                      <div className="rounded-full bg-orange-100 p-2 shrink-0">
+                        <Clock className="h-5 w-5 text-orange-600" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                        <h3 className="font-semibold text-gray-900 truncate">
                           {shift.name}
                         </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <p className="text-sm text-gray-500">
                           {shift.startTime} - {shift.endTime}
                         </p>
                       </div>
@@ -107,7 +107,7 @@ export default async function ShiftsPage() {
                     >
                       <button
                         type="submit"
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors dark:hover:bg-red-900/30"
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
                         title="Hapus Shift"
                       >
                         <Trash2 className="h-5 w-5" />

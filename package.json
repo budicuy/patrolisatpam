@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "biome check",
-    "format": "biome format --write"
+    "format": "biome format --write",
+    "db:push": "drizzle-kit push",
+    "db:seed": "bun seed.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

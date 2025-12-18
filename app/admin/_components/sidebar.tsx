@@ -26,10 +26,10 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="flex h-full min-h-dvh w-64 flex-col bg-white shadow-lg dark:bg-gray-800">
-      <div className="flex h-16 items-center justify-center border-b border-gray-200 px-4 dark:border-gray-700">
-        <ShieldCheck className="mr-2 h-8 w-8 text-blue-600 dark:text-blue-400" />
-        <span className="text-xl font-bold font-sans text-gray-900 dark:text-white">
+    <div className="flex h-full min-h-dvh w-64 flex-col bg-white shadow-lg">
+      <div className="flex h-16 items-center justify-center border-b border-gray-200 px-4">
+        <ShieldCheck className="mr-2 h-8 w-8 text-blue-600" />
+        <span className="text-xl font-bold font-sans text-gray-900">
           Admin Patroli
         </span>
       </div>
@@ -43,16 +43,16 @@ export function Sidebar() {
               href={item.href}
               className={cn(
                 isActive
-                  ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white",
+                  ? "bg-blue-50 text-blue-700"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
                 "group flex items-center rounded-md px-2 py-2 text-sm font-medium transition-colors",
               )}
             >
               <item.icon
                 className={cn(
                   isActive
-                    ? "text-blue-700 dark:text-blue-300"
-                    : "text-gray-400 group-hover:text-gray-500 dark:text-gray-400 dark:group-hover:text-gray-300",
+                    ? "text-blue-700"
+                    : "text-gray-400 group-hover:text-gray-500",
                   "mr-3 h-5 w-5 shrink-0",
                 )}
                 aria-hidden="true"
@@ -63,14 +63,14 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t border-gray-200 p-4 dark:border-gray-700">
+      <div className="border-t border-gray-200 p-4">
         <button
           type="button"
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30 transition-colors"
+          className="group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
         >
           <LogOut
-            className="mr-3 h-5 w-5 text-red-500 group-hover:text-red-600 dark:text-red-400"
+            className="mr-3 h-5 w-5 text-red-500 group-hover:text-red-600"
             aria-hidden="true"
           />
           Keluar

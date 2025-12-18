@@ -19,7 +19,7 @@ export function AdminLayoutShell({
   }, []);
 
   return (
-    <div className="flex min-h-dvh bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative">
+    <div className="flex min-h-dvh bg-gray-100 text-gray-900 relative">
       {/* Desktop Sidebar */}
       <div className="hidden md:block fixed inset-y-0 left-0 z-50 w-64 h-full">
         <Sidebar />
@@ -50,15 +50,15 @@ export function AdminLayoutShell({
       {/* Content Area */}
       <div className="flex-1 md:pl-64 w-full flex flex-col min-h-dvh transition-all duration-200">
         {/* Mobile Header */}
-        <div className="sticky top-0 z-30 flex h-16 items-center border-b border-gray-200 bg-white px-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 md:hidden">
+        <div className="sticky top-0 z-30 flex h-16 items-center border-b border-gray-200 bg-white px-4 shadow-sm md:hidden">
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
-            className="text-gray-500 hover:text-gray-700 focus:outline-none dark:text-gray-400 dark:hover:text-gray-200"
+            className="text-gray-500 hover:text-gray-700 focus:outline-none"
           >
             {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
-          <span className="ml-4 text-lg font-semibold text-gray-900 dark:text-white">
+          <span className="ml-4 text-lg font-semibold text-gray-900">
             {user?.name || "Patroli"}
           </span>
         </div>
