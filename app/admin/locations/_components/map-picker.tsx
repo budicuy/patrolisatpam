@@ -13,6 +13,12 @@ import L from "leaflet";
 import { Loader2, Locate } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+// Simple coordinate interface for external use
+interface LatLng {
+  lat: number;
+  lng: number;
+}
+
 // Fix for default marker icon in Next.js
 // @ts-expect-error
 delete L.Icon.Default.prototype._getIconUrl;
@@ -39,18 +45,18 @@ function LocationMarker({
   position,
   onPositionChange,
 }: {
-  position: L.LatLng | null;
-  onPositionChange: (pos: L.LatLng) => void;
+  position: LatLng | null;
+  onPositionChange: (pos: LatLng) => void;
 }) {
   const map = useMapEvents({
     click(e) {
-      onPositionChange(e.latlng);
+      onPositionChange({ lat: e.latlng.lat, lng: e.latlng.lng });
       map.flyTo(e.latlng, map.getZoom());
     },
   });
 
   return position === null ? null : (
-    <Marker position={position} title="Lokasi Terpilih">
+    <Marker position={[position.lat, position.lng]} title="Lokasi Terpilih">
       <Popup>Location Selected</Popup>
     </Marker>
   );
@@ -59,7 +65,7 @@ function LocationMarker({
 function UserLocationMarker({
   onUserLocationFound,
 }: {
-  onUserLocationFound: (pos: L.LatLng, accuracy: number) => void;
+  onUserLocationFound: (pos: LatLng, accuracy: number) => void;
 }) {
   const [position, setPosition] = useState<L.LatLng | null>(null);
   const [accuracy, setAccuracy] = useState<number | null>(null);
@@ -67,7 +73,7 @@ function UserLocationMarker({
     locationfound(e) {
       setPosition(e.latlng);
       setAccuracy(e.accuracy);
-      onUserLocationFound(e.latlng, e.accuracy);
+      onUserLocationFound({ lat: e.latlng.lat, lng: e.latlng.lng }, e.accuracy);
       // Zoom level 18 for better accuracy view
       map.flyTo(e.latlng, 18);
     },
@@ -91,22 +97,29 @@ export default function MapPicker({
   position,
   onPositionChange,
 }: {
-  position: L.LatLng | null;
-  onPositionChange: (pos: L.LatLng) => void;
+  position: LatLng | null;
+  onPositionChange: (pos: LatLng) => void;
 }) {
-  const [userPosition, setUserPosition] = useState<L.LatLng | null>(null);
+  const [userPosition, setUserPosition] = useState<LatLng | null>(null);
   const [accuracy, setAccuracy] = useState<number | null>(null);
 
-  const handleUserLocationFound = (pos: L.LatLng, acc: number) => {
+  const handleUserLocationFound = (pos: LatLng, acc: number) => {
     setUserPosition(pos);
     setAccuracy(acc);
     onPositionChange(pos);
   };
 
+  // Get center coordinates
+  const center: [number, number] = position
+    ? [position.lat, position.lng]
+    : userPosition
+      ? [userPosition.lat, userPosition.lng]
+      : [-3.549538, 114.730745]; // Default to Kantor Utama
+
   return (
     <div className="relative h-full w-full">
       <MapContainer
-        center={position || userPosition || [-3.549538, 114.730745]} // Default to Kantor Utama
+        center={center}
         zoom={16}
         scrollWheelZoom={true}
         style={{ height: "100%", width: "100%" }}
