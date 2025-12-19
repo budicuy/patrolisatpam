@@ -3,27 +3,45 @@
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { shifts } from "@/lib/schema";
+import { patrolHistory, shifts } from "@/lib/schema";
 
 export async function getShifts() {
   return await db.select().from(shifts);
 }
 
 export async function createShift(formData: FormData) {
-  const name = formData.get("name") as string;
-  const startTime = formData.get("startTime") as string;
-  const endTime = formData.get("endTime") as string;
+  try {
+    const name = formData.get("name") as string;
+    const startTime = formData.get("startTime") as string;
+    const endTime = formData.get("endTime") as string;
 
-  await db.insert(shifts).values({
-    name,
-    startTime: startTime,
-    endTime: endTime,
-  });
+    if (!name || !startTime || !endTime) {
+      return { error: "Semua field harus diisi" };
+    }
 
-  revalidatePath("/admin/shifts");
+    await db.insert(shifts).values({
+      name,
+      startTime: startTime,
+      endTime: endTime,
+    });
+
+    revalidatePath("/admin/shifts");
+    return { success: true };
+  } catch (error) {
+    console.error("Create shift error:", error);
+    return { error: "Gagal membuat shift" };
+  }
 }
 
 export async function deleteShift(id: number) {
-  await db.delete(shifts).where(eq(shifts.id, id));
-  revalidatePath("/admin/shifts");
+  try {
+    // Delete associated patrol history first
+    await db.delete(patrolHistory).where(eq(patrolHistory.shiftId, id));
+    await db.delete(shifts).where(eq(shifts.id, id));
+    revalidatePath("/admin/shifts");
+    return { success: true };
+  } catch (error) {
+    console.error("Delete shift error:", error);
+    return { error: "Gagal menghapus shift" };
+  }
 }

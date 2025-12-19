@@ -1,5 +1,6 @@
-import { Clock, Plus, Trash2 } from "lucide-react";
-import { createShift, deleteShift, getShifts } from "@/app/actions/shifts";
+import { getShifts } from "@/app/actions/shifts";
+import { ShiftForm } from "./_components/shift-form";
+import { ShiftList } from "./_components/shift-list";
 
 export default async function ShiftsPage() {
   const shifts = await getShifts();
@@ -13,62 +14,7 @@ export default async function ShiftsPage() {
         <div className="lg:col-span-1">
           <div className="rounded-xl bg-white p-6 shadow-md">
             <h2 className="mb-4 text-xl font-semibold">Tambah Shift Baru</h2>
-            <form action={createShift} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="name"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Nama Shift
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Contoh: Shift Pagi"
-                  required
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="startTime"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Jam Mulai
-                  </label>
-                  <input
-                    type="time"
-                    name="startTime"
-                    required
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="endTime"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Jam Selesai
-                  </label>
-                  <input
-                    type="time"
-                    name="endTime"
-                    required
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="flex w-full items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Simpan Shift
-              </button>
-            </form>
+            <ShiftForm />
           </div>
         </div>
 
@@ -76,47 +22,7 @@ export default async function ShiftsPage() {
         <div className="lg:col-span-2">
           <div className="rounded-xl bg-white p-6 shadow-md">
             <h2 className="mb-4 text-xl font-semibold">Daftar Shift</h2>
-            <div className="space-y-4">
-              {shifts.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">
-                  Belum ada shift yang terdaftar.
-                </p>
-              ) : (
-                shifts.map((shift) => (
-                  <div
-                    key={shift.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 gap-4"
-                  >
-                    <div className="flex items-center space-x-4 w-full">
-                      <div className="rounded-full bg-orange-100 p-2 shrink-0">
-                        <Clock className="h-5 w-5 text-orange-600" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-semibold text-gray-900 truncate">
-                          {shift.name}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {shift.startTime} - {shift.endTime}
-                        </p>
-                      </div>
-                    </div>
-
-                    <form
-                      action={deleteShift.bind(null, shift.id)}
-                      className="self-end sm:self-center"
-                    >
-                      <button
-                        type="submit"
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                        title="Hapus Shift"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </button>
-                    </form>
-                  </div>
-                ))
-              )}
-            </div>
+            <ShiftList initialShifts={shifts} />
           </div>
         </div>
       </div>
