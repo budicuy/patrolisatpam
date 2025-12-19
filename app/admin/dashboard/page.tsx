@@ -1,7 +1,10 @@
 import { count } from "drizzle-orm";
 import { History, MapPin, Users } from "lucide-react";
+import { getPatrolStatsByUser } from "@/app/actions/stats";
 import { db } from "@/lib/db";
 import { locations, patrolHistory, users } from "@/lib/schema";
+import { PatrolStatsChart } from "./_components/patrol-stats-chart";
+import { UnpatrolledWarning } from "./_components/unpatrolled-warning";
 
 async function getStats() {
   "use server";
@@ -18,6 +21,7 @@ async function getStats() {
 
 export default async function AdminDashboard() {
   const stats = await getStats();
+  const patrolStatsByUser = await getPatrolStatsByUser();
 
   return (
     <div className="space-y-6">
@@ -70,14 +74,23 @@ export default async function AdminDashboard() {
         </div>
       </div>
 
+      {/* Patrol Statistics Chart */}
       <div className="mt-8">
         <h2 className="text-xl font-semibold mb-4 text-gray-900">
-          Aktivitas Terbaru
+          Statistik Patroli per Petugas
         </h2>
         <div className="rounded-xl bg-white p-6 shadow-md">
-          <p className="text-gray-500 text-sm italic">
-            Belum ada aktivitas patroli terbaru.
-          </p>
+          <PatrolStatsChart data={patrolStatsByUser} />
+        </div>
+      </div>
+
+      {/* Unpatrolled Locations Warning */}
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold mb-4 text-gray-900">
+          Status Patroli Lokasi
+        </h2>
+        <div className="rounded-xl bg-white p-6 shadow-md">
+          <UnpatrolledWarning />
         </div>
       </div>
     </div>
