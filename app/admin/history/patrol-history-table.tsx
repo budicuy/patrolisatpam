@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Eye, ImageIcon, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { deletePatrolLog, updatePatrolLog } from "@/app/actions/history";
@@ -20,6 +20,7 @@ type PatrolLog = {
   userId: string | null;
   userName: string | null;
   locationName: string | null;
+  shiftId: string | null;
   shiftName: string | null;
   status: "aman" | "tidak_aman" | null;
   notes: string | null;
@@ -30,21 +31,16 @@ type Props = {
   history: PatrolLog[];
 };
 
-export function PatrolHistoryTable({ history }: Props) {
-  const [selectedGroup, setSelectedGroup] = useState<{
-    userName: string;
-    date: Date;
-    logs: {
-      id: string;
-      time: Date;
-      locationName: string | null;
-      status: "aman" | "tidak_aman" | null;
-      notes: string | null;
-      imageData: string | null;
-    }[];
-  } | null>(null);
+type ShiftGroup = {
+  shiftId: string;
+  shiftName: string;
+  date: string;
+  dateFormatted: string;
+  logs: PatrolLog[];
+};
 
-  // Edit State
+export function PatrolHistoryTable({ history }: Props) {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [editingLog, setEditingLog] = useState<{
     id: string;
     status: "aman" | "tidak_aman";
@@ -57,9 +53,6 @@ export function PatrolHistoryTable({ history }: Props) {
       const res = await deletePatrolLog(logId);
       if (res.error) {
         alert(res.error);
-      } else {
-        // Close modal or refresh - simplicity: close modal
-        setSelectedGroup(null);
       }
     } catch {
       alert("Gagal menghapus");
@@ -77,307 +70,284 @@ export function PatrolHistoryTable({ history }: Props) {
         alert(res.error);
       } else {
         setEditingLog(null);
-        setSelectedGroup(null); // Force refresh by closing
       }
     } catch {
       alert("Gagal update");
     }
   };
 
-  const groupedHistory = Object.values(
-    history.reduce(
-      (acc, log) => {
-        if (!log.userId || !log.checkInTime) return acc;
+  // Group by date then shift
+  const groupedByDateAndShift = (): ShiftGroup[] => {
+    const groups: Record<string, ShiftGroup> = {};
 
-        const dateKey = format(new Date(log.checkInTime), "yyyy-MM-dd");
-        const key = `${log.userId}-${dateKey}`;
+    for (const log of history) {
+      if (!log.shiftId || !log.checkInTime) continue;
 
-        if (!acc[key]) {
-          acc[key] = {
-            id: key,
-            userId: log.userId,
-            userName: log.userName || "Unknown",
-            date: new Date(log.checkInTime),
-            locations: new Set<string>(),
-            shifts: new Set<string>(),
-            logs: [],
-          };
-        }
+      const dateKey = format(new Date(log.checkInTime), "yyyy-MM-dd");
+      const key = `${dateKey}-${log.shiftId}`;
 
-        if (log.locationName) acc[key].locations.add(log.locationName);
-        if (log.shiftName) acc[key].shifts.add(log.shiftName);
+      if (!groups[key]) {
+        groups[key] = {
+          shiftId: log.shiftId,
+          shiftName: log.shiftName || "Unknown Shift",
+          date: dateKey,
+          dateFormatted: format(
+            new Date(log.checkInTime),
+            "EEEE, d MMMM yyyy",
+            {
+              locale: id,
+            },
+          ),
+          logs: [],
+        };
+      }
 
-        acc[key].logs.push({
-          id: log.id,
-          time: new Date(log.checkInTime),
-          locationName: log.locationName,
-          status: log.status,
-          notes: log.notes,
-          imageData: log.imageData,
-        });
+      groups[key].logs.push(log);
+    }
 
-        return acc;
-      },
-      {} as Record<
-        string,
-        {
-          id: string;
-          userId: string;
-          userName: string;
-          date: Date;
-          locations: Set<string>;
-          shifts: Set<string>;
-          logs: {
-            id: string;
-            time: Date;
-            locationName: string | null;
-            status: "aman" | "tidak_aman" | null;
-            notes: string | null;
-            imageData: string | null;
-          }[];
-        }
-      >,
-    ),
-  ).sort((a, b) => b.date.getTime() - a.date.getTime());
+    // Sort logs within each group by time (newest first)
+    for (const key in groups) {
+      groups[key].logs.sort(
+        (a, b) =>
+          new Date(b.checkInTime).getTime() - new Date(a.checkInTime).getTime(),
+      );
+    }
+
+    // Sort groups by date (newest first) then by shift name
+    return Object.values(groups).sort((a, b) => {
+      const dateCompare = b.date.localeCompare(a.date);
+      if (dateCompare !== 0) return dateCompare;
+      return a.shiftName.localeCompare(b.shiftName);
+    });
+  };
+
+  const shiftGroups = groupedByDateAndShift();
 
   return (
     <>
-      <div className="rounded-xl bg-white shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-4 font-semibold text-gray-900">
-                  Petugas
-                </th>
-                <th className="px-6 py-4 font-semibold text-gray-900">
-                  Lokasi
-                </th>
-                <th className="px-6 py-4 font-semibold text-gray-900">Shift</th>
-                <th className="px-6 py-4 font-semibold text-gray-900">
-                  Waktu Check-In
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {groupedHistory.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-6 py-4 text-center text-gray-500"
-                  >
-                    Belum ada data riwayat.
-                  </td>
-                </tr>
-              ) : (
-                groupedHistory.map((group) => (
-                  <tr
-                    key={group.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                      <div className="flex flex-col">
-                        <span>{group.userName}</span>
-                        <span className="text-xs text-gray-500">
-                          {format(group.date, "dd MMMM yyyy", { locale: id })}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500">
-                      <div className="flex flex-wrap gap-1">
-                        {Array.from(group.locations).map((loc) => (
-                          <span
-                            key={loc}
-                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
-                          >
-                            {loc}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 whitespace-nowrap">
-                      {Array.from(group.shifts).join(", ")}
-                    </td>
-                    <td className="px-6 py-4 text-gray-500">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedGroup({
-                            userName: group.userName,
-                            date: group.date,
-                            logs: group.logs,
-                          })
-                        }
-                        className="text-blue-600 hover:text-blue-800 font-medium text-sm underline decoration-blue-600/30 hover:decoration-blue-600 transition-all"
-                      >
-                        Lihat Detail ({group.logs.length} Check-in)
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="space-y-8">
+        {shiftGroups.length === 0 ? (
+          <div className="rounded-xl bg-white shadow-md p-8 text-center">
+            <p className="text-gray-500">Belum ada data riwayat patroli.</p>
+          </div>
+        ) : (
+          shiftGroups.map((group) => (
+            <div
+              key={`${group.date}-${group.shiftId}`}
+              className="rounded-xl bg-white shadow-md overflow-hidden"
+            >
+              {/* Shift Header */}
+              <div className="bg-linear-to-r from-blue-600 to-blue-700 px-6 py-4">
+                <h2 className="text-lg font-bold text-white">
+                  {group.shiftName} : {group.dateFormatted}
+                </h2>
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold text-gray-700 w-12 text-center">
+                        No
+                      </th>
+                      <th className="px-4 py-3 font-semibold text-gray-700">
+                        Control Location
+                      </th>
+                      <th className="px-4 py-3 font-semibold text-gray-700">
+                        Tanggal
+                      </th>
+                      <th className="px-4 py-3 font-semibold text-gray-700">
+                        Waktu
+                      </th>
+                      <th className="px-4 py-3 font-semibold text-gray-700">
+                        Nama Petugas
+                      </th>
+                      <th className="px-4 py-3 font-semibold text-gray-700">
+                        Kondisi
+                      </th>
+                      <th className="px-4 py-3 font-semibold text-gray-700 text-center">
+                        Gambar
+                      </th>
+                      <th className="px-4 py-3 font-semibold text-gray-700 text-center">
+                        Aksi
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {group.logs.length === 0 ? (
+                      <tr>
+                        <td className="px-4 py-4 text-center text-gray-400">
+                          -
+                        </td>
+                        <td className="px-4 py-4 text-center text-gray-400">
+                          -
+                        </td>
+                        <td className="px-4 py-4 text-center text-gray-400">
+                          -
+                        </td>
+                        <td className="px-4 py-4 text-center text-gray-400">
+                          -
+                        </td>
+                        <td className="px-4 py-4 text-center text-gray-400">
+                          -
+                        </td>
+                        <td className="px-4 py-4 text-center text-gray-400">
+                          -
+                        </td>
+                        <td className="px-4 py-4 text-center text-gray-400">
+                          -
+                        </td>
+                        <td className="px-4 py-4 text-center text-gray-400">
+                          -
+                        </td>
+                      </tr>
+                    ) : (
+                      group.logs.map((log, index) => (
+                        <tr
+                          key={log.id}
+                          className={`hover:bg-gray-50 transition-colors ${
+                            log.status === "tidak_aman" ? "bg-red-50" : ""
+                          }`}
+                        >
+                          <td className="px-4 py-3 text-center text-gray-500 font-medium">
+                            {index + 1}
+                          </td>
+                          <td className="px-4 py-3 font-medium text-gray-900">
+                            {log.locationName || "-"}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            {format(new Date(log.checkInTime), "dd/MM/yyyy")}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600 font-mono">
+                            {format(new Date(log.checkInTime), "HH:mm")}
+                          </td>
+                          <td className="px-4 py-3 text-gray-900">
+                            {log.userName || "-"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
+                                log.status === "tidak_aman"
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-green-100 text-green-700"
+                              }`}
+                            >
+                              {log.status === "tidak_aman" ? "Unsafe" : "Safe"}
+                            </span>
+                            {log.status === "tidak_aman" && log.notes && (
+                              <p className="mt-1 text-xs text-red-600 max-w-[200px] truncate">
+                                {log.notes}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {log.imageData ? (
+                              <button
+                                type="button"
+                                onClick={() => setSelectedImage(log.imageData)}
+                                className="inline-flex items-center justify-center p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                                title="Lihat Gambar"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center justify-center p-2 rounded-lg bg-gray-100 text-gray-400">
+                                <ImageIcon className="w-4 h-4" />
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setEditingLog({
+                                    id: log.id,
+                                    status: log.status || "aman",
+                                    notes: log.notes || "",
+                                  })
+                                }
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                                title="Edit"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(log.id)}
+                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                title="Hapus"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
-      {/* Detail Modal */}
-      {selectedGroup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-100 pb-4">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-xl font-bold text-gray-900">
-                  Detail Check-In
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setSelectedGroup(null)}
-                  className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-500"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    role="img"
-                    aria-label="Close"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M18 6 6 18" />
-                    <path d="m6 6 12 12" />
-                  </svg>
-                </button>
-              </div>
-              <div className="flex flex-col text-sm text-gray-500">
-                <span className="font-medium text-gray-900">
-                  {selectedGroup.userName}
-                </span>
-                <span>
-                  {format(selectedGroup.date, "EEEE, dd MMMM yyyy", {
-                    locale: id,
-                  })}
-                </span>
-              </div>
-            </div>
-
-            <div className="overflow-y-auto p-6 space-y-4 bg-gray-50/50">
-              {selectedGroup.logs
-                .sort((a, b) => b.time.getTime() - a.time.getTime())
-                .map((log, i) => (
-                  <div
-                    key={`${i}-${log.time.getTime()}`}
-                    className={`flex flex-col p-4 rounded-xl border ${
-                      log.status === "tidak_aman"
-                        ? "bg-red-50 border-red-100"
-                        : "bg-white border-gray-100"
-                    } shadow-sm`}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <div className="text-sm font-bold text-gray-900 mb-1">
-                          {log.locationName || "Unknown Location"}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
-                              log.status === "tidak_aman"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-green-100 text-green-700"
-                            }`}
-                          >
-                            {log.status === "tidak_aman" ? "BAHAYA" : "AMAN"}
-                          </span>
-                          <span className="text-xs text-gray-500 font-mono">
-                            {format(log.time, "HH:mm:ss", { locale: id })}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {log.status === "tidak_aman" && (
-                      <div className="mt-2 space-y-3 pt-3 border-t border-red-100">
-                        {log.notes && (
-                          <div className="text-sm">
-                            <span className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                              Keterangan:
-                            </span>
-                            <p className="text-gray-800 bg-white/50 p-2 rounded-lg">
-                              {log.notes}
-                            </p>
-                          </div>
-                        )}
-                        {log.imageData && (
-                          <div>
-                            <span className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                              Foto Bukti:
-                            </span>
-                            <a
-                              href={log.imageData}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block overflow-hidden rounded-lg border border-gray-200 group relative"
-                            >
-                              <Image
-                                src={log.imageData}
-                                alt="Bukti Keamanan"
-                                width={400}
-                                height={192}
-                                className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105"
-                                unoptimized
-                              />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                <span className="bg-white/90 text-gray-900 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
-                                  Lihat Full Size
-                                </span>
-                              </div>
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="mt-3 flex gap-2 justify-end border-t border-gray-100 pt-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setEditingLog({
-                            id: log.id,
-                            status: log.status || "aman",
-                            notes: log.notes || "",
-                          })
-                        }
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                        title="Edit"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(log.id)}
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                        title="Hapus"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-            </div>
-
-            <div className="p-4 border-t border-gray-100 bg-white rounded-b-2xl flex justify-end">
-              <button
-                type="button"
-                onClick={() => setSelectedGroup(null)}
-                className="px-6 py-2.5 text-sm font-bold text-white bg-gray-900 hover:bg-gray-800 rounded-xl transition-all shadow-sm hover:shadow"
+      {/* Image Modal */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setSelectedImage(null)}
+          onKeyDown={(e) => e.key === "Escape" && setSelectedImage(null)}
+          role="button"
+          tabIndex={0}
+        >
+          <div
+            className="relative max-w-4xl w-full animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={() => {}}
+            role="dialog"
+            tabIndex={-1}
+          >
+            <button
+              type="button"
+              onClick={() => setSelectedImage(null)}
+              className="absolute -top-12 right-0 p-2 text-white hover:text-gray-300 transition-colors"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                role="img"
+                aria-label="Close"
               >
-                Tutup
-              </button>
-            </div>
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+            <Image
+              src={selectedImage}
+              alt="Bukti Patroli"
+              width={1200}
+              height={800}
+              className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+              unoptimized
+            />
+            <a
+              href={selectedImage}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-900 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+            >
+              Buka Full Size
+            </a>
           </div>
         </div>
       )}
@@ -408,8 +378,8 @@ export function PatrolHistoryTable({ history }: Props) {
                     })
                   }
                 >
-                  <option value="aman">Aman</option>
-                  <option value="tidak_aman">Tidak Aman/Bahaya</option>
+                  <option value="aman">Aman (Safe)</option>
+                  <option value="tidak_aman">Tidak Aman (Unsafe)</option>
                 </select>
               </div>
               {editingLog.status === "tidak_aman" && (

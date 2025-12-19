@@ -13,6 +13,7 @@ export async function getPatrolHistory() {
       userId: users.id,
       userName: users.name,
       locationName: locations.name,
+      shiftId: shifts.id,
       shiftName: shifts.name,
       status: patrolHistory.status,
       notes: patrolHistory.notes,
