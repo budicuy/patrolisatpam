@@ -141,6 +141,97 @@ const main = async () => {
       .onConflictDoNothing();
     console.log("~~~ Seeding shifts complete! ~~~ 👌");
 
+    // --- Generate Dummy Patrol History ---
+    console.log("Started generate dummy patrol history...");
+
+    // 1. Fetch Master Data
+    const allUsers = await db.select().from(users);
+    const allLocations = await db.select().from(locations);
+    const allShifts = await db.select().from(shifts);
+
+    const satpamUsers = allUsers.filter((u) => u.role === "satpam");
+    if (
+      satpamUsers.length === 0 ||
+      allLocations.length === 0 ||
+      allShifts.length === 0
+    ) {
+      console.warn("Skipping history seeding: Missing master data.");
+      process.exit(0);
+    }
+
+    const logsToInsert: (typeof patrolHistory.$inferInsert)[] = [];
+    const DAYS_TO_GENERATE = 7;
+    // const LOGS_PER_SHIFT = 20; // Removed, now using allLocations.length
+
+    const notesExamples = [
+      "Pintu tidak terkunci",
+      "Lampu koridor mati",
+      "Ada barang mencurigakan",
+      "Kaca jendela retak",
+      "Keran air bocor",
+      null,
+      null,
+      null,
+      null,
+      null, // bias towards null (safe) slightly if used with random
+    ];
+
+    for (let i = 0; i < DAYS_TO_GENERATE; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i); // Go back i days
+
+      for (const shift of allShifts) {
+        // Base time for this shift on this date
+        // Simple logic: parse startTime to get hours
+        const [startHour] = shift.startTime.split(":");
+        const shiftStart = new Date(date);
+        shiftStart.setHours(Number(startHour), 0, 0, 0);
+
+        // Generate 1 log per location for this shift (Total 10 locations)
+        // Shuffle locations slightly to make time sequence interesting?
+        // Or just iterate standard order. Let's Shuffle for "realistic" randomness in path.
+        const shuffledLocations = [...allLocations].sort(
+          () => Math.random() - 0.5,
+        );
+
+        let minuteOffset = 0;
+        for (const location of shuffledLocations) {
+          const randomUser =
+            satpamUsers[Math.floor(Math.random() * satpamUsers.length)];
+          const isUnsafe = Math.random() < 0.1; // 10% chance unsafe
+
+          // Sequential time: 10-20 mins apart
+          minuteOffset += 10 + Math.floor(Math.random() * 10);
+
+          const logTime = new Date(shiftStart);
+          logTime.setMinutes(logTime.getMinutes() + minuteOffset);
+
+          logsToInsert.push({
+            userId: randomUser.id,
+            shiftId: shift.id,
+            locationId: location.id,
+            checkInTime: logTime,
+            status: isUnsafe ? "tidak_aman" : "aman",
+            notes: isUnsafe
+              ? notesExamples[Math.floor(Math.random() * 5)] // Pick an unsafe note
+              : null,
+            imageData: isUnsafe
+              ? "https://placehold.co/600x400/red/white?text=BUKTI+BAHAYA"
+              : null,
+          });
+        }
+      }
+    }
+
+    // Batch insert (Drizzle insert many)
+    // Chunking if too large might be needed in real scenario, but 7*3*20 = 420 rows is fine.
+    if (logsToInsert.length > 0) {
+      await db.insert(patrolHistory).values(logsToInsert);
+      console.log(
+        `~~~ Inserted ${logsToInsert.length} dummy patrol logs! ~~~ 🚀`,
+      );
+    }
+
     console.log("~~~ Seeding ALL complete! ~~~ 👍👍👍");
     process.exit(0);
   } catch (e) {
