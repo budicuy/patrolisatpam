@@ -77,7 +77,7 @@ function MapController({ center }: { center: { lat: number; lng: number } }) {
 }
 
 interface Location {
-  id: string;
+  id: number;
   name: string;
   latitude: number;
   longitude: number;
@@ -89,7 +89,7 @@ interface PatrolMapProps {
   currentPosition: { lat: number; lng: number } | null;
   targetLocation: Location | null;
   locations: Location[];
-  visitedLocations: string[];
+  visitedLocations: number[];
 }
 
 export default function PatrolMap({

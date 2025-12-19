@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { Pencil, Plus, Trash } from "lucide-react";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 import { deleteUser } from "@/app/actions/users";
 import {
   AlertDialog,
@@ -29,7 +29,7 @@ export function UserList({ users: initialUsers }: UserListProps) {
   const [editingUser, setEditingUser] = useState<
     typeof users.$inferSelect | null
   >(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
 
   const handleCreate = () => {
@@ -46,11 +46,15 @@ export function UserList({ users: initialUsers }: UserListProps) {
     if (!deleteId) return;
     startDeleteTransition(async () => {
       try {
-        await deleteUser(deleteId);
-        toast.success("User berhasil dihapus");
-        setDeleteId(null);
-      } catch (error) {
-        toast.error(`Gagal menghapus user: ${error}`);
+        const res = await deleteUser(deleteId);
+        if (res?.error) {
+          toast.error(res.error);
+        } else {
+          toast.success("User berhasil dihapus");
+          setDeleteId(null);
+        }
+      } catch {
+        toast.error("Terjadi kesalahan saat menghapus user");
       }
     });
   };

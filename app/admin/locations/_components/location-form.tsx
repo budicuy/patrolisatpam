@@ -3,6 +3,7 @@
 import { Loader2, Plus } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
+import { toast } from "react-hot-toast";
 import { createLocation } from "@/app/actions/locations"; // We will fix the import if needed
 
 // Dynamically import Map component to avoid SSR issues with Leaflet
@@ -22,14 +23,8 @@ export default function LocationForm() {
     lng: 114.730076,
   }); // Default Location
 
-  const [message, setMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
-
   const handleSubmit = async (formData: FormData) => {
     setLoading(true);
-    setMessage(null);
 
     // Add coordinates to formData
     formData.set("latitude", coordinates.lat.toString());
@@ -38,9 +33,9 @@ export default function LocationForm() {
     const result = await createLocation(formData);
 
     if (result?.error) {
-      setMessage({ type: "error", text: result.error });
+      toast.error(result.error);
     } else {
-      setMessage({ type: "success", text: "Lokasi berhasil ditambahkan!" });
+      toast.success("Lokasi berhasil ditambahkan!");
       // Reset logic could go here if using a controlled form or ref
     }
 
@@ -49,13 +44,6 @@ export default function LocationForm() {
 
   return (
     <form action={handleSubmit} className="space-y-4">
-      {message && (
-        <div
-          className={`p-3 rounded-md text-sm ${message.type === "error" ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600"}`}
-        >
-          {message.text}
-        </div>
-      )}
       <div>
         <label
           htmlFor="name"

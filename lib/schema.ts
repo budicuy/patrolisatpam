@@ -3,14 +3,14 @@ import {
   doublePrecision,
   integer,
   pgTable,
+  serial,
   text,
   time,
   timestamp,
-  uuid,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
-  id: uuid("id").defaultRandom().primaryKey(),
+  id: serial("id").primaryKey(),
   username: text("username").unique().notNull(),
   name: text("name").notNull(),
   password: text("password").notNull(),
@@ -21,7 +21,7 @@ export const users = pgTable("users", {
 });
 
 export const locations = pgTable("locations", {
-  id: uuid("id").defaultRandom().primaryKey(),
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   latitude: doublePrecision("latitude").notNull(),
   longitude: doublePrecision("longitude").notNull(),
@@ -31,7 +31,7 @@ export const locations = pgTable("locations", {
 });
 
 export const shifts = pgTable("shifts", {
-  id: uuid("id").defaultRandom().primaryKey(),
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   startTime: time("start_time").notNull(),
   endTime: time("end_time").notNull(),
@@ -39,14 +39,14 @@ export const shifts = pgTable("shifts", {
 });
 
 export const patrolHistory = pgTable("patrol_history", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
     .references(() => users.id)
     .notNull(),
-  shiftId: uuid("shift_id")
+  shiftId: integer("shift_id")
     .references(() => shifts.id)
     .notNull(),
-  locationId: uuid("location_id")
+  locationId: integer("location_id")
     .references(() => locations.id)
     .notNull(),
   checkInTime: timestamp("check_in_time").defaultNow().notNull(),

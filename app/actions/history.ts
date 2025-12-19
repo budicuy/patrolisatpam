@@ -45,7 +45,6 @@ export const getPatrolHistory = async ({
     `;
 
     const groupsResult = await db.execute(groupsQuery);
-    // @ts-expect-error
     const groups = groupsResult as unknown as {
       date: string;
       shift_id: string;
@@ -97,7 +96,6 @@ export const getPatrolHistory = async ({
     `;
 
     const countResult = await db.execute(countQuery);
-    // @ts-expect-error
     const totalGroups = Number(countResult[0]?.count || 0);
     const totalPages = Math.ceil(totalGroups / limit);
 
@@ -118,7 +116,7 @@ export const getPatrolHistory = async ({
   }
 };
 
-export async function deletePatrolLog(id: string) {
+export async function deletePatrolLog(id: number) {
   try {
     await db.delete(patrolHistory).where(eq(patrolHistory.id, id));
     revalidatePath("/admin/history");
@@ -130,7 +128,7 @@ export async function deletePatrolLog(id: string) {
 }
 
 export async function updatePatrolLog(
-  id: string,
+  id: number,
   data: { status: "aman" | "tidak_aman"; notes?: string },
 ) {
   try {

@@ -23,7 +23,7 @@ export async function createShift(formData: FormData) {
   revalidatePath("/admin/shifts");
 }
 
-export async function deleteShift(id: string) {
+export async function deleteShift(id: number) {
   await db.delete(shifts).where(eq(shifts.id, id));
   revalidatePath("/admin/shifts");
 }

@@ -36,17 +36,23 @@ export async function createLocation(formData: FormData) {
   return { success: true };
 }
 
-export async function deleteLocation(id: string) {
-  await db.transaction(async (tx) => {
-    // Delete associated patrol history first to satisfy foreign key constraints
-    await tx.delete(patrolHistory).where(eq(patrolHistory.locationId, id));
-    // Then delete the location
-    await tx.delete(locations).where(eq(locations.id, id));
-  });
-  revalidatePath("/admin/locations");
+export async function deleteLocation(id: number) {
+  try {
+    await db.transaction(async (tx) => {
+      // Delete associated patrol history first to satisfy foreign key constraints
+      await tx.delete(patrolHistory).where(eq(patrolHistory.locationId, id));
+      // Then delete the location
+      await tx.delete(locations).where(eq(locations.id, id));
+    });
+    revalidatePath("/admin/locations");
+    return { success: true };
+  } catch (error) {
+    console.error("Delete location error:", error);
+    return { error: "Gagal menghapus lokasi." };
+  }
 }
 
-export async function updateLocation(id: string, formData: FormData) {
+export async function updateLocation(id: number, formData: FormData) {
   const name = formData.get("name") as string;
   const latitude = parseFloat(formData.get("latitude") as string);
   const longitude = parseFloat(formData.get("longitude") as string);

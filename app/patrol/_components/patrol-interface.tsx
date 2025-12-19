@@ -45,13 +45,13 @@ const PatrolMap = dynamic(() => import("./patrol-map"), {
 });
 
 interface User {
-  id: string;
+  id: string; // Keep as string for display/auth, parse when sending to DB
   name: string;
   username: string;
 }
 
 interface Location {
-  id: string;
+  id: number;
   name: string;
   latitude: number;
   longitude: number;
@@ -60,7 +60,7 @@ interface Location {
 }
 
 interface Shift {
-  id: string;
+  id: number;
   name: string;
   startTime: string;
   endTime: string;
@@ -76,7 +76,7 @@ export default function PatrolInterface({
   user: User;
   locations: Location[];
   shifts: Shift[];
-  initialActiveShiftId: string | null;
+  initialActiveShiftId: number | null;
   serverTime: string;
 }) {
   const router = useRouter();
@@ -86,12 +86,12 @@ export default function PatrolInterface({
     lng: number;
   } | null>(null);
   const [targetLocation, setTargetLocation] = useState<Location | null>(null); // The next location to visit
-  const [visitedLocations, setVisitedLocations] = useState<string[]>([]);
+  const [visitedLocations, setVisitedLocations] = useState<number[]>([]);
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null);
 
   // SECURE: Initialize with server-provided active shift ID
-  const [selectedShift, setSelectedShift] = useState<string>(
-    initialActiveShiftId || "",
+  const [selectedShift, setSelectedShift] = useState<number | null>(
+    initialActiveShiftId,
   );
   const [loading, setLoading] = useState(false);
 
@@ -175,7 +175,7 @@ export default function PatrolInterface({
 
       // 2. Immediate DB Insert
       const result = await checkInPatrol(
-        user.id,
+        Number(user.id),
         selectedShift,
         targetLocation.id,
         checkInStatus,
@@ -382,7 +382,8 @@ export default function PatrolInterface({
     setPatrolStartTime(null);
     setPatrolEndTime(null);
     setVisitedLocations([]);
-    setSelectedShift("");
+    setVisitedLocations([]);
+    setSelectedShift(null);
     router.refresh();
   };
 

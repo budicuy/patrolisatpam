@@ -13,42 +13,62 @@ export async function getUsers() {
 }
 
 export async function createUser(data: typeof users.$inferInsert) {
-  const existingUser = await db.query.users.findFirst({
-    where: eq(users.username, data.username),
-  });
+  try {
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.username, data.username),
+    });
 
-  if (existingUser) {
-    throw new Error("Username already taken");
+    if (existingUser) {
+      return { error: "Username already taken" };
+    }
+
+    const hashedPassword = await hash(data.password, 10);
+
+    await db.insert(users).values({
+      ...data,
+      password: hashedPassword,
+    });
+
+    revalidatePath("/admin/users");
+    return { success: true };
+  } catch (error) {
+    console.error("Create user error:", error);
+    return { error: "Gagal membuat user" };
   }
-
-  const hashedPassword = await hash(data.password, 10);
-
-  await db.insert(users).values({
-    ...data,
-    password: hashedPassword,
-  });
-
-  revalidatePath("/admin/users");
 }
 
 export async function updateUser(
-  id: string,
+  id: number,
   data: Partial<typeof users.$inferInsert> & { password?: string },
 ) {
-  const updateData: typeof data = { ...data };
+  try {
+    const updateData: typeof data = { ...data };
 
-  if (data.password) {
-    updateData.password = await hash(data.password, 10);
-  } else {
-    delete updateData.password;
+    if (data.password) {
+      updateData.password = await hash(data.password, 10);
+    } else {
+      delete updateData.password;
+    }
+
+    await db.update(users).set(updateData).where(eq(users.id, id));
+
+    revalidatePath("/admin/users");
+    return { success: true };
+  } catch (error) {
+    console.error("Update user error:", error);
+    return { error: "Gagal mengupdate user" };
   }
-
-  await db.update(users).set(updateData).where(eq(users.id, id));
-
-  revalidatePath("/admin/users");
 }
 
-export async function deleteUser(id: string) {
-  await db.delete(users).where(eq(users.id, id));
-  revalidatePath("/admin/users");
+export async function deleteUser(id: number) {
+  try {
+    await db.delete(users).where(eq(users.id, id));
+    revalidatePath("/admin/users");
+    return { success: true };
+  } catch (error) {
+    console.error("Delete user error:", error);
+    return {
+      error: "Gagal menghapus user. Mungkin user terhubung dengan data lain.",
+    };
+  }
 }

@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 import * as z from "zod";
 import { createUser, updateUser } from "@/app/actions/users";
 import { Button } from "@/components/ui/button";
@@ -60,25 +60,28 @@ export function UserForm({ isOpen, onClose, user }: UserFormProps) {
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
       try {
+        let result: { success?: boolean; error?: string } | undefined;
         if (user) {
-          await updateUser(user.id, values);
-          toast.success("User berhasil diperbarui");
+          result = await updateUser(user.id, values);
         } else {
           if (!values.password) {
             form.setError("password", { message: "Password wajib diisi" });
             return;
           }
-          await createUser(
-            values as typeof users.$inferInsert, // Type assertion since schema validation handles it
-          );
-          toast.success("User berhasil dibuat");
+          result = await createUser(values as typeof users.$inferInsert);
         }
-        onClose();
-        form.reset();
-      } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "Terjadi kesalahan",
-        );
+
+        if (result?.error) {
+          toast.error(result.error);
+        } else {
+          toast.success(
+            user ? "User berhasil diperbarui" : "User berhasil dibuat",
+          );
+          onClose();
+          form.reset();
+        }
+      } catch {
+        toast.error("Terjadi kesalahan");
       }
     });
   }

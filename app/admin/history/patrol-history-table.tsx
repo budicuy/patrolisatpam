@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Edit, Eye, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { toast } from "react-hot-toast";
 import { deletePatrolLog, updatePatrolLog } from "@/app/actions/history";
 import {
   AlertDialog,
@@ -36,12 +37,12 @@ import {
 } from "@/components/ui/select";
 
 type PatrolLog = {
-  id: string;
+  id: number;
   checkInTime: Date;
-  userId: string | null;
+  userId: number | null;
   userName: string | null;
   locationName: string | null;
-  shiftId: string | null;
+  shiftId: number | null;
   shiftName: string | null;
   status: "aman" | "tidak_aman" | null;
   notes: string | null;
@@ -49,7 +50,7 @@ type PatrolLog = {
 };
 
 type Shift = {
-  id: string;
+  id: number;
   name: string;
   startTime: string;
   endTime: string;
@@ -63,7 +64,7 @@ type Props = {
 };
 
 type ShiftGroup = {
-  shiftId: string;
+  shiftId: number;
   shiftName: string;
   date: string;
   dateFormatted: string;
@@ -79,9 +80,9 @@ export function PatrolHistoryTable({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [deletingLogId, setDeletingLogId] = useState<string | null>(null);
+  const [deletingLogId, setDeletingLogId] = useState<number | null>(null);
   const [editingLog, setEditingLog] = useState<{
-    id: string;
+    id: number;
     status: "aman" | "tidak_aman";
     notes: string;
   } | null>(null);
@@ -105,7 +106,7 @@ export function PatrolHistoryTable({
     router.push("?");
   };
 
-  const handleDeleteClick = (logId: string) => {
+  const handleDeleteClick = (logId: number) => {
     setDeletingLogId(logId);
   };
 
@@ -116,12 +117,13 @@ export function PatrolHistoryTable({
     try {
       const res = await deletePatrolLog(deletingLogId);
       if (res.error) {
-        alert(res.error);
+        toast.error(res.error);
       } else {
+        toast.success("Log berhasil dihapus");
         setDeletingLogId(null);
       }
     } catch {
-      alert("Gagal menghapus");
+      toast.error("Gagal menghapus");
     }
   };
 
@@ -133,12 +135,13 @@ export function PatrolHistoryTable({
         notes: editingLog.notes,
       });
       if (res.error) {
-        alert(res.error);
+        toast.error(res.error);
       } else {
+        toast.success("Log berhasil diperbarui");
         setEditingLog(null);
       }
     } catch {
-      alert("Gagal update");
+      toast.error("Gagal update");
     }
   };
 
@@ -215,14 +218,14 @@ export function PatrolHistoryTable({
                 handleFilterChange("shiftId", val === "all" ? "" : val)
               }
             >
-              <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Semua Shift" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Shift</SelectItem>
-                {shifts.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name}
+                {shifts.map((shift) => (
+                  <SelectItem key={shift.id} value={shift.id.toString()}>
+                    {shift.name} ({shift.startTime} - {shift.endTime})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -503,7 +506,7 @@ export function PatrolHistoryTable({
                     aria-current={currentPage === pageNum ? "page" : undefined}
                     className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
                       currentPage === pageNum
-                        ? "z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                        ? "z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                         : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
                     }`}
                   >

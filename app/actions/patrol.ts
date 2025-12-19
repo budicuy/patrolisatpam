@@ -72,7 +72,7 @@ function getShiftWindow(
   return { start, end };
 }
 
-export async function getPatrolProgress(shiftId: string) {
+export async function getPatrolProgress(shiftId: number) {
   try {
     const shift = await db.query.shifts.findFirst({
       where: eq(shifts.id, shiftId),
@@ -105,9 +105,9 @@ export async function getPatrolProgress(shiftId: string) {
 }
 
 export async function checkInPatrol(
-  userId: string,
-  shiftId: string,
-  locationId: string,
+  userId: number,
+  shiftId: number,
+  locationId: number,
   status: "aman" | "tidak_aman" = "aman",
   notes?: string,
   imageData?: string,
@@ -154,7 +154,7 @@ export async function checkInPatrol(
 }
 
 export async function getActiveShiftId(
-  shiftsData: { id: string; startTime: string; endTime: string }[],
+  shiftsData: { id: number; startTime: string; endTime: string }[],
 ) {
   const now = new Date();
 
