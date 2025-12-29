@@ -2,12 +2,11 @@
 
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Clock, MapPin } from "lucide-react";
+import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Clock, Calendar, MapPin, XCircle } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { getUnpatrolledLocations } from "@/app/actions/stats";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 interface Location {
@@ -39,8 +38,8 @@ interface ShiftStatus {
 }
 
 export function UnpatrolledWarning() {
-  const today = format(new Date(), "yyyy-MM-dd");
-  const [selectedDate, setSelectedDate] = useState(today);
+  const today = new Date();
+  const [selectedDateString, setSelectedDateString] = useState<string>(format(today, "yyyy-MM-dd"));
   const [shiftStatuses, setShiftStatuses] = useState<ShiftStatus[]>([]);
   const [isPending, startTransition] = useTransition();
 
@@ -48,39 +47,38 @@ export function UnpatrolledWarning() {
 
   useEffect(() => {
     startTransition(async () => {
-      const result = await getUnpatrolledLocations(selectedDate);
+      const result = await getUnpatrolledLocations(selectedDateString);
       setShiftStatuses(result);
+
+      // Auto-expand the first shift by default
+      if (result.length > 0) {
+        setExpandedShift(result[0].shift.id);
+      }
     });
-  }, [selectedDate]);
-
-  const formattedDate = format(new Date(selectedDate), "EEEE, d MMMM yyyy", {
-    locale: id,
-  });
-
-  const allComplete = shiftStatuses.every((s) => s.isFullyComplete);
+  }, [selectedDateString]);
 
   const toggleExpand = (id: number) => {
     setExpandedShift(expandedShift === id ? null : id);
   };
 
+  const selectedDate = new Date(selectedDateString);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-gray-100 pb-6">
-        <div>
-          <Label htmlFor="warning-date" className="text-gray-500 font-medium mb-1.5 block">
-            Filter Tanggal
-          </Label>
-          <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-2">
+        <label className="text-sm font-medium text-gray-500">Filter Tanggal</label>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
             <Input
               type="date"
-              id="warning-date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full sm:w-[180px] h-10 bg-gray-50 border-gray-200 focus:border-blue-500 focus:ring-blue-500 transition-all font-medium"
+              value={selectedDateString}
+              onChange={(e) => setSelectedDateString(e.target.value)}
+              className="pl-9 w-full sm:w-[180px] bg-white border-gray-200 focus:border-blue-500 transition-all font-medium"
             />
-            <span className="text-sm font-medium text-gray-900 bg-gray-100 px-3 py-2 rounded-md hidden sm:block">
-              {formattedDate}
-            </span>
+          </div>
+          <div className="flex-1 flex items-center px-4 py-2 bg-gray-50 rounded-md border border-gray-200 text-sm font-medium text-gray-600">
+            {format(selectedDate, "EEEE, d MMMM yyyy", { locale: id })}
           </div>
         </div>
       </div>
@@ -90,165 +88,107 @@ export function UnpatrolledWarning() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
           <p className="text-sm font-medium">Memuat data patroli...</p>
         </div>
-      ) : allComplete ? (
-        <div className="flex flex-col items-center justify-center py-12 px-4 rounded-xl bg-green-50/50 border border-green-100 text-center">
-          <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle className="h-8 w-8 text-green-600" />
-          </div>
-          <h3 className="text-lg font-bold text-green-800 mb-1">Semua Aman! 🎉</h3>
-          <p className="text-green-600">
-            Semua shift sudah menyelesaikan {shiftStatuses[0]?.totalRounds || 5} putaran patroli pada tanggal ini.
-          </p>
-        </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-4">
           {shiftStatuses.map((status) => {
-            const progressPercent = Math.round(
-              (status.completedRounds / status.totalRounds) * 100
-            );
             const isExpanded = expandedShift === status.shift.id;
 
             return (
               <div
                 key={status.shift.id}
-                className={cn(
-                  "group relative overflow-hidden rounded-xl bg-white border transition-all duration-200",
-                  status.isFullyComplete
-                    ? "border-green-100 shadow-sm hover:shadow-md hover:border-green-200"
-                    : "border-amber-100 shadow-sm hover:shadow-md hover:border-amber-200"
-                )}
+                className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
               >
-                {/* Status Bar */}
                 <div
-                  className={cn(
-                    "absolute left-0 top-0 bottom-0 w-1",
-                    status.isFullyComplete ? "bg-green-500" : "bg-amber-500"
-                  )}
-                />
-
-                <div className="p-5 pl-7">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <div
-                        className={cn(
-                          "rounded-xl p-3 shrink-0",
-                          status.isFullyComplete ? "bg-green-50" : "bg-amber-50"
-                        )}
-                      >
-                        <Clock
-                          className={cn(
-                            "h-6 w-6",
-                            status.isFullyComplete ? "text-green-600" : "text-amber-600"
-                          )}
-                        />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-gray-900 text-lg">
-                          {status.shift.name}
-                        </h4>
-                        <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-                          <span className="font-medium bg-gray-100 px-2 py-0.5 rounded text-gray-700">
-                            {status.shift.startTime} - {status.shift.endTime}
-                          </span>
-                        </div>
-                      </div>
+                  className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => toggleExpand(status.shift.id)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500">
+                      <Clock className="h-5 w-5" />
                     </div>
-
-                    <div className="flex items-center gap-6 self-end sm:self-auto w-full sm:w-auto justify-between sm:justify-end">
-                      <div className="text-right">
-                        <p className={cn(
-                          "text-2xl font-bold font-sans",
-                          status.isFullyComplete ? "text-green-600" : "text-amber-600"
-                        )}>
-                          {status.completedRounds}<span className="text-sm font-medium text-gray-400">/{status.totalRounds}</span>
-                        </p>
-                        <p className="text-xs font-medium text-gray-400">Putaran Selesai</p>
-                      </div>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleExpand(status.shift.id)}
-                        className={cn(
-                          "bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-lg h-10 w-10 p-0",
-                          isExpanded && "bg-gray-100"
-                        )}
-                      >
-                        {isExpanded ? (
-                          <ChevronUp className="h-5 w-5" />
-                        ) : (
-                          <ChevronDown className="h-5 w-5" />
-                        )}
-                      </Button>
+                    <div>
+                      <h4 className="font-bold text-gray-900">{status.shift.name}</h4>
+                      <p className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded w-fit mt-1">
+                        {status.shift.startTime} - {status.shift.endTime}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Progress Bar */}
-                  <div className="mt-4 w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                  <div className="flex items-center gap-4">
+                    <div className="text-right hidden sm:block">
+                      <span className="text-lg font-bold text-orange-500">{status.completedRounds}</span>
+                      <span className="text-sm text-gray-400 font-medium">/5</span>
+                      <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Putaran Selesai</p>
+                    </div>
                     <div
                       className={cn(
-                        "h-full rounded-full transition-all duration-500",
-                        status.isFullyComplete ? "bg-green-500" : "bg-amber-500"
+                        "h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 transition-transform duration-200",
+                        isExpanded && "transform rotate-180"
                       )}
-                      style={{ width: `${progressPercent}%` }}
-                    />
+                    >
+                      <ChevronDown className="h-5 w-5" />
+                    </div>
                   </div>
+                </div>
+
+                {/* Progress Bar Line */}
+                <div className="h-1 w-full bg-gray-50">
+                  <div
+                    className="h-full bg-orange-500 transition-all duration-500"
+                    style={{ width: `${(status.completedRounds / 5) * 100}%` }}
+                  />
                 </div>
 
                 {/* Expanded Details */}
                 {isExpanded && (
-                  <div className="border-t border-gray-100 bg-gray-50/50 p-5 pl-7 animate-in slide-in-from-top-2 duration-200">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-gray-50/50 p-6 border-t border-gray-100 animate-in slide-in-from-top-1">
+                    <div className="space-y-6">
                       {status.rounds.map((round) => (
-                        <div
-                          key={round.roundNumber}
-                          className={cn(
-                            "relative overflow-hidden rounded-lg border bg-white p-3 transition-all",
-                            round.isComplete
-                              ? "border-green-100 bg-green-50/10"
-                              : "border-amber-100 bg-amber-50/10"
-                          )}
-                        >
-                          <div className="flex justify-between items-center mb-2">
-                            <span className={cn(
-                              "text-sm font-bold px-2 py-0.5 rounded-md",
-                              round.isComplete
-                                ? "bg-green-100 text-green-700"
-                                : "bg-amber-100 text-amber-700"
-                            )}>
-                              Putaran {round.roundNumber}
-                            </span>
+                        <div key={round.roundNumber} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                          <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-2">
+                            <div className="flex items-center gap-2">
+                              <span className={cn(
+                                "h-6 w-6 flex items-center justify-center rounded-full text-xs font-bold",
+                                round.isComplete ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"
+                              )}>
+                                {round.roundNumber}
+                              </span>
+                              <span className="font-bold text-gray-900">
+                                Putaran {round.roundNumber}
+                              </span>
+                            </div>
                             {round.isComplete ? (
-                              <CheckCircle className="h-4 w-4 text-green-500" />
+                              <span className="flex items-center text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
+                                <CheckCircle className="h-3 w-3 mr-1" /> Selesai
+                              </span>
                             ) : (
-                              <AlertTriangle className="h-4 w-4 text-amber-500" />
+                              <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                                {round.patrolledCount}/{status.totalLocations} Selesai
+                              </span>
                             )}
                           </div>
 
-                          {round.isComplete ? (
-                            <p className="text-xs font-medium text-gray-500">Semua {status.totalLocations} titik selesai.</p>
-                          ) : (
+                          {/* Detailed List of Unpatrolled Locations */}
+                          {!round.isComplete && round.unpatrolledLocations.length > 0 ? (
                             <div className="space-y-2">
-                              <p className="text-xs font-medium text-gray-500">
-                                {round.patrolledCount}/{status.totalLocations} titik dipatroli
-                              </p>
-                              {round.unpatrolledLocations.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5">
-                                  {round.unpatrolledLocations.slice(0, 3).map(loc => (
-                                    <span key={loc.id} className="inline-flex items-center px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50 text-[10px] font-medium text-gray-600">
-                                      <MapPin className="h-2 w-2 mr-1 text-gray-400" />
+                              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Belum Dipatroli:</p>
+                              <div className="divide-y divide-gray-100 border border-gray-100 rounded-md bg-gray-50/50">
+                                {round.unpatrolledLocations.map((loc, idx) => (
+                                  <div key={loc.id} className="flex items-center gap-3 p-2 text-sm">
+                                    <span className="text-gray-400 text-xs w-6 text-center">{idx + 1}</span>
+                                    <div className="flex items-center text-gray-700 font-medium">
+                                      <XCircle className="h-3 w-3 text-red-400 mr-2" />
                                       {loc.name}
-                                    </span>
-                                  ))}
-                                  {round.unpatrolledLocations.length > 3 && (
-                                    <span className="text-[10px] text-gray-400 font-medium py-0.5">
-                                      +{round.unpatrolledLocations.length - 3} lainnya
-                                    </span>
-                                  )}
-                                </div>
-                              )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          )}
+                          ) : round.isComplete ? (
+                            <div className="text-center py-2 text-sm text-gray-400 italic">
+                              Semua lokasi telah dipatroli pada putaran ini.
+                            </div>
+                          ) : null}
                         </div>
                       ))}
                     </div>

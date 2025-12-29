@@ -6,9 +6,36 @@ interface StatCardProps {
     value: string | number;
     icon: LucideIcon;
     description?: string;
-    className?: string; // Additional classes for the card
-    iconClassName?: string; // Classes for the icon container
+    className?: string;
+    variant?: "blue" | "green" | "purple" | "orange";
 }
+
+const variants = {
+    blue: {
+        bg: "bg-blue-50 border-blue-100",
+        iconBg: "bg-blue-500",
+        text: "text-blue-900",
+        label: "text-blue-600",
+    },
+    green: {
+        bg: "bg-green-50 border-green-100",
+        iconBg: "bg-green-500",
+        text: "text-green-900",
+        label: "text-green-600",
+    },
+    purple: {
+        bg: "bg-purple-50 border-purple-100",
+        iconBg: "bg-purple-500",
+        text: "text-purple-900",
+        label: "text-purple-600",
+    },
+    orange: {
+        bg: "bg-orange-50 border-orange-100",
+        iconBg: "bg-orange-500",
+        text: "text-orange-900",
+        label: "text-orange-600",
+    },
+};
 
 export function StatCard({
     label,
@@ -16,35 +43,37 @@ export function StatCard({
     icon: Icon,
     description,
     className,
-    iconClassName,
+    variant = "blue",
 }: StatCardProps) {
+    const styles = variants[variant];
+
     return (
         <div
             className={cn(
-                "relative overflow-hidden rounded-xl bg-white p-6 shadow-sm border border-gray-100 transition-all hover:shadow-md",
+                "relative overflow-hidden rounded-2xl p-6 shadow-sm transition-all hover:shadow-md border",
+                styles.bg,
                 className
             )}
         >
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
                 <div>
-                    <p className="text-sm font-medium text-gray-500">{label}</p>
-                    <h3 className="mt-2 text-3xl font-bold text-gray-900">{value}</h3>
+                    <p className={cn("text-sm font-medium", styles.label)}>{label}</p>
+                    <h3 className={cn("mt-4 text-4xl font-bold", styles.text)}>{value}</h3>
                     {description && (
-                        <p className="mt-1 text-xs text-gray-500">{description}</p>
+                        <p className={cn("mt-1 text-xs opacity-80", styles.label)}>
+                            {description}
+                        </p>
                     )}
                 </div>
                 <div
                     className={cn(
-                        "flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50",
-                        iconClassName
+                        "flex h-12 w-12 items-center justify-center rounded-xl shadow-sm text-white",
+                        styles.iconBg
                     )}
                 >
                     <Icon className="h-6 w-6" />
                 </div>
             </div>
-
-            {/* Decorative gradient overlay */}
-            <div className="absolute top-0 right-0 -mr-8 -mt-8 h-24 w-24 rounded-full bg-current opacity-[0.03] blur-2xl" />
         </div>
     );
 }
