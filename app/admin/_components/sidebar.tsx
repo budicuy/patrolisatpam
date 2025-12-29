@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   LogOut,
   MapPin,
-  ShieldCheck,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -28,9 +27,8 @@ export function Sidebar() {
   return (
     <div className="flex h-full min-h-dvh w-64 flex-col bg-white shadow-lg">
       <div className="flex h-16 items-center justify-center border-b border-gray-200 px-4">
-        <ShieldCheck className="mr-2 h-8 w-8 text-blue-600" />
         <span className="text-xl font-bold font-sans text-gray-900">
-          Admin Patroli
+          Satpam Patroli
         </span>
       </div>
 

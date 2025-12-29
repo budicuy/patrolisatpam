@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
 import { checkInPatrol, getPatrolProgress } from "@/app/actions/patrol";
+import { TOTAL_ROUNDS } from "@/lib/constants";
 import { uploadImage } from "@/app/actions/upload";
 import { Button } from "@/components/ui/button";
 import {
@@ -89,11 +90,12 @@ export default function PatrolInterface({
   const [visitedLocations, setVisitedLocations] = useState<number[]>([]);
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null);
 
-  // SECURE: Initialize with server-provided active shift ID
   const [selectedShift, setSelectedShift] = useState<number | null>(
     initialActiveShiftId,
   );
   const [loading, setLoading] = useState(false);
+  const [currentRound, setCurrentRound] = useState(1);
+  const [completedRounds, setCompletedRounds] = useState(0);
 
   const [accuracy, setAccuracy] = useState<number | null>(null);
 
@@ -136,8 +138,10 @@ export default function PatrolInterface({
     if (!selectedShift) return;
     // Don't set global loading here to avoid interrupting UI flow, just background update
     try {
-      const { visitedLocationIds } = await getPatrolProgress(selectedShift);
-      setVisitedLocations(visitedLocationIds);
+      const progress = await getPatrolProgress(selectedShift);
+      setVisitedLocations(progress.visitedLocationIds);
+      setCurrentRound(progress.currentRound);
+      setCompletedRounds(progress.completedRounds || 0);
     } catch (error) {
       console.error("Failed to fetch progress", error);
     }
@@ -178,6 +182,7 @@ export default function PatrolInterface({
         Number(user.id),
         selectedShift,
         targetLocation.id,
+        currentRound,
         checkInStatus,
         checkInNote,
         finalImageUrl,
@@ -564,9 +569,14 @@ export default function PatrolInterface({
 
         {targetLocation ? (
           <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
-            <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1">
-              Tujuan Berikutnya
-            </p>
+            <div className="flex justify-between items-center mb-1">
+              <p className="text-xs text-blue-600 font-bold uppercase tracking-wider">
+                Tujuan Berikutnya
+              </p>
+              <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
+                Putaran {currentRound}/{TOTAL_ROUNDS}
+              </span>
+            </div>
 
             <div className="flex justify-between items-center">
               <span className="font-semibold text-gray-800">
@@ -596,17 +606,41 @@ export default function PatrolInterface({
           </div>
         ) : (
           <div className="bg-green-50 p-3 rounded-lg border border-green-100 text-center">
-            <p className="text-green-700 font-bold flex items-center justify-center mb-2">
-              <CheckCircle className="mr-2 h-5 w-5" />
-              Semua Lokasi Terkunjungi!
-            </p>
-            <button
-              type="button"
-              onClick={handleFinishPatrol}
-              className="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition-all shadow-sm"
-            >
-              Klik lihat laporan
-            </button>
+            {currentRound < TOTAL_ROUNDS ? (
+              <>
+                <p className="text-green-700 font-bold flex items-center justify-center mb-2">
+                  <CheckCircle className="mr-2 h-5 w-5" />
+                  Putaran {currentRound} Selesai!
+                </p>
+                <p className="text-sm text-gray-600 mb-2">
+                  Lanjut ke putaran {currentRound + 1} dari {TOTAL_ROUNDS}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVisitedLocations([]);
+                    fetchProgress();
+                  }}
+                  className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-all shadow-sm"
+                >
+                  Mulai Putaran Berikutnya
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-green-700 font-bold flex items-center justify-center mb-2">
+                  <CheckCircle className="mr-2 h-5 w-5" />
+                  Semua {TOTAL_ROUNDS} Putaran Selesai! 🎉
+                </p>
+                <button
+                  type="button"
+                  onClick={handleFinishPatrol}
+                  className="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition-all shadow-sm"
+                >
+                  Lihat Laporan
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -679,11 +713,10 @@ export default function PatrolInterface({
               <button
                 type="button"
                 onClick={() => setCheckInStatus("aman")}
-                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
-                  checkInStatus === "aman"
-                    ? "border-green-500 bg-green-50 text-green-700"
-                    : "border-gray-200 hover:border-green-200 text-gray-500"
-                }`}
+                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${checkInStatus === "aman"
+                  ? "border-green-500 bg-green-50 text-green-700"
+                  : "border-gray-200 hover:border-green-200 text-gray-500"
+                  }`}
               >
                 <CheckCircle
                   className={`h-8 w-8 ${checkInStatus === "aman" ? "fill-green-500 text-white" : ""}`}
@@ -694,11 +727,10 @@ export default function PatrolInterface({
               <button
                 type="button"
                 onClick={() => setCheckInStatus("tidak_aman")}
-                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
-                  checkInStatus === "tidak_aman"
-                    ? "border-red-500 bg-red-50 text-red-700"
-                    : "border-gray-200 hover:border-red-200 text-gray-500"
-                }`}
+                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${checkInStatus === "tidak_aman"
+                  ? "border-red-500 bg-red-50 text-red-700"
+                  : "border-gray-200 hover:border-red-200 text-gray-500"
+                  }`}
               >
                 <LogOut
                   className={`h-8 w-8 ${checkInStatus === "tidak_aman" ? "fill-red-500 text-white" : ""}`}

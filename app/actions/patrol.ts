@@ -2,13 +2,9 @@
 
 import { and, eq, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { TIMEZONE_OFFSET_MS, TOTAL_ROUNDS } from "@/lib/constants";
 import { db } from "@/lib/db";
-import { patrolHistory, shifts } from "@/lib/schema";
-
-// TIMEZONE CONFIGURATION
-// Indonesia Central Time (WITA) is UTC+8
-const TIMEZONE_OFFSET_HOURS = 8;
-const TIMEZONE_OFFSET_MS = TIMEZONE_OFFSET_HOURS * 60 * 60 * 1000;
+import { locations, patrolHistory, shifts } from "@/lib/schema";
 
 // Helper to determine active shift window in specific timezone (WITA)
 function getShiftWindow(
@@ -78,7 +74,7 @@ export async function getPatrolProgress(shiftId: number) {
       where: eq(shifts.id, shiftId),
     });
 
-    if (!shift) return { visitedLocationIds: [] };
+    if (!shift) return { currentRound: 1, visitedLocationIds: [], totalLocations: 0 };
 
     // Use current server time, but logic inside handles WITA adjustment
     const { start, end } = getShiftWindow({
@@ -86,8 +82,16 @@ export async function getPatrolProgress(shiftId: number) {
       endTime: shift.endTime,
     });
 
+    // Get total locations
+    const allLocations = await db.select({ id: locations.id }).from(locations);
+    const totalLocations = allLocations.length;
+
+    // Get all logs for this shift window
     const logs = await db
-      .select({ locationId: patrolHistory.locationId })
+      .select({
+        locationId: patrolHistory.locationId,
+        roundNumber: patrolHistory.roundNumber,
+      })
       .from(patrolHistory)
       .where(
         and(
@@ -97,10 +101,41 @@ export async function getPatrolProgress(shiftId: number) {
         ),
       );
 
-    return { visitedLocationIds: logs.map((l) => l.locationId) };
+    // Group by round
+    const roundsData: Record<number, Set<number>> = {};
+    for (let i = 1; i <= TOTAL_ROUNDS; i++) {
+      roundsData[i] = new Set();
+    }
+
+    for (const log of logs) {
+      if (log.roundNumber >= 1 && log.roundNumber <= TOTAL_ROUNDS) {
+        roundsData[log.roundNumber].add(log.locationId);
+      }
+    }
+
+    // Find current round (first incomplete round)
+    let currentRound = TOTAL_ROUNDS;
+    for (let i = 1; i <= TOTAL_ROUNDS; i++) {
+      if (roundsData[i].size < totalLocations) {
+        currentRound = i;
+        break;
+      }
+    }
+
+    // Get visited locations for current round
+    const visitedLocationIds = Array.from(roundsData[currentRound]);
+
+    return {
+      currentRound,
+      visitedLocationIds,
+      totalLocations,
+      completedRounds: Object.entries(roundsData).filter(
+        ([, locs]) => locs.size >= totalLocations
+      ).length,
+    };
   } catch (error) {
     console.error("Failed to get patrol progress", error);
-    return { visitedLocationIds: [] };
+    return { currentRound: 1, visitedLocationIds: [], totalLocations: 0, completedRounds: 0 };
   }
 }
 
@@ -108,6 +143,7 @@ export async function checkInPatrol(
   userId: number,
   shiftId: number,
   locationId: number,
+  roundNumber: number,
   status: "aman" | "tidak_aman" = "aman",
   notes?: string,
   imageData?: string,
@@ -133,11 +169,17 @@ export async function checkInPatrol(
       );
     }
 
-    // 3. Insert Log
+    // 3. Validate round number
+    if (roundNumber < 1 || roundNumber > TOTAL_ROUNDS) {
+      throw new Error(`Nomor putaran tidak valid (harus 1-${TOTAL_ROUNDS})`);
+    }
+
+    // 4. Insert Log
     await db.insert(patrolHistory).values({
       userId,
       shiftId,
       locationId,
+      roundNumber,
       checkInTime: now, // Store absolute UTC
       status,
       notes,

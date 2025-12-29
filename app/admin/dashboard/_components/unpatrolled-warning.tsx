@@ -14,6 +14,13 @@ interface Location {
   order: number;
 }
 
+interface RoundStatus {
+  roundNumber: number;
+  patrolledCount: number;
+  unpatrolledLocations: Location[];
+  isComplete: boolean;
+}
+
 interface ShiftStatus {
   shift: {
     id: number;
@@ -21,9 +28,12 @@ interface ShiftStatus {
     startTime: string;
     endTime: string;
   };
-  unpatrolledLocations: Location[];
+  rounds: RoundStatus[];
+  completedRounds: number;
+  totalRounds: number;
   totalLocations: number;
-  patrolledCount: number;
+  totalPatrolled: number;
+  isFullyComplete: boolean;
 }
 
 export function UnpatrolledWarning() {
@@ -43,10 +53,8 @@ export function UnpatrolledWarning() {
     locale: id,
   });
 
-  // Check if all shifts have all locations patrolled
-  const allComplete = shiftStatuses.every(
-    (s) => s.unpatrolledLocations.length === 0,
-  );
+  // Check if all shifts are fully complete
+  const allComplete = shiftStatuses.every((s) => s.isFullyComplete);
 
   return (
     <div className="space-y-4">
@@ -74,42 +82,37 @@ export function UnpatrolledWarning() {
         <div className="flex items-center gap-3 p-4 rounded-lg bg-green-50 border border-green-200">
           <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
           <p className="text-green-700 font-medium">
-            Semua lokasi sudah dipatroli pada semua shift di tanggal ini! 🎉
+            Semua shift sudah menyelesaikan {shiftStatuses[0]?.totalRounds || 5} putaran patroli! 🎉
           </p>
         </div>
       ) : (
         <div className="space-y-4">
           {shiftStatuses.map((status) => {
-            const isComplete = status.unpatrolledLocations.length === 0;
-            const progress = Math.round(
-              (status.patrolledCount / status.totalLocations) * 100,
+            const progressPercent = Math.round(
+              (status.completedRounds / status.totalRounds) * 100
             );
 
             return (
               <div
                 key={status.shift.id}
-                className={`rounded-lg border ${
-                  isComplete
+                className={`rounded-lg border ${status.isFullyComplete
                     ? "bg-green-50 border-green-200"
                     : "bg-amber-50 border-amber-200"
-                }`}
+                  }`}
               >
                 {/* Shift Header */}
                 <div
-                  className={`flex items-center justify-between px-4 py-3 border-b ${
-                    isComplete ? "border-green-200" : "border-amber-200"
-                  }`}
+                  className={`flex items-center justify-between px-4 py-3 border-b ${status.isFullyComplete ? "border-green-200" : "border-amber-200"
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`rounded-full p-2 ${
-                        isComplete ? "bg-green-100" : "bg-amber-100"
-                      }`}
+                      className={`rounded-full p-2 ${status.isFullyComplete ? "bg-green-100" : "bg-amber-100"
+                        }`}
                     >
                       <Clock
-                        className={`h-4 w-4 ${
-                          isComplete ? "text-green-600" : "text-amber-600"
-                        }`}
+                        className={`h-4 w-4 ${status.isFullyComplete ? "text-green-600" : "text-amber-600"
+                          }`}
                       />
                     </div>
                     <div>
@@ -123,50 +126,71 @@ export function UnpatrolledWarning() {
                   </div>
                   <div className="text-right">
                     <p
-                      className={`text-sm font-bold ${
-                        isComplete ? "text-green-600" : "text-amber-600"
-                      }`}
+                      className={`text-sm font-bold ${status.isFullyComplete ? "text-green-600" : "text-amber-600"
+                        }`}
                     >
-                      {status.patrolledCount}/{status.totalLocations}
+                      {status.completedRounds}/{status.totalRounds} Putaran
                     </p>
-                    <p className="text-xs text-gray-500">{progress}%</p>
+                    <p className="text-xs text-gray-500">{progressPercent}%</p>
                   </div>
                 </div>
 
-                {/* Unpatrolled Locations */}
-                {!isComplete && (
-                  <div className="p-4">
-                    <div className="flex items-center gap-2 text-amber-600 mb-3">
-                      <AlertTriangle className="h-4 w-4" />
+                {/* Round Progress */}
+                <div className="p-4">
+                  <div className="flex gap-2 mb-3">
+                    {status.rounds.map((round) => (
+                      <div
+                        key={round.roundNumber}
+                        className={`flex-1 h-2 rounded-full ${round.isComplete ? "bg-green-500" : "bg-gray-200"
+                          }`}
+                        title={`Putaran ${round.roundNumber}: ${round.patrolledCount}/${status.totalLocations}`}
+                      />
+                    ))}
+                  </div>
+
+                  {status.isFullyComplete ? (
+                    <div className="flex items-center gap-2 text-green-600">
+                      <CheckCircle className="h-4 w-4" />
                       <span className="text-sm font-medium">
-                        {status.unpatrolledLocations.length} lokasi belum
-                        dipatroli:
+                        Semua putaran selesai ✓
                       </span>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {status.unpatrolledLocations.map((loc) => (
-                        <div
-                          key={loc.id}
-                          className="flex items-center gap-2 p-2 rounded bg-white border border-amber-100"
-                        >
-                          <MapPin className="h-3 w-3 text-amber-500 shrink-0" />
-                          <span className="text-sm text-gray-700 truncate">
-                            {loc.name}
-                          </span>
-                        </div>
-                      ))}
+                  ) : (
+                    <div className="space-y-2">
+                      {status.rounds.map((round) => {
+                        if (round.isComplete) return null;
+                        return (
+                          <div key={round.roundNumber} className="text-sm">
+                            <div className="flex items-center gap-2 text-amber-600 mb-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              <span className="font-medium">
+                                Putaran {round.roundNumber}: {round.patrolledCount}/{status.totalLocations} lokasi
+                              </span>
+                            </div>
+                            {round.unpatrolledLocations.length > 0 && (
+                              <div className="flex flex-wrap gap-1 ml-5">
+                                {round.unpatrolledLocations.slice(0, 5).map((loc) => (
+                                  <span
+                                    key={loc.id}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white border border-amber-100 text-xs"
+                                  >
+                                    <MapPin className="h-2 w-2 text-amber-500" />
+                                    {loc.name}
+                                  </span>
+                                ))}
+                                {round.unpatrolledLocations.length > 5 && (
+                                  <span className="text-xs text-gray-500">
+                                    +{round.unpatrolledLocations.length - 5} lainnya
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  </div>
-                )}
-
-                {isComplete && (
-                  <div className="p-4 flex items-center gap-2 text-green-600">
-                    <CheckCircle className="h-4 w-4" />
-                    <span className="text-sm font-medium">
-                      Semua lokasi sudah dipatroli ✓
-                    </span>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             );
           })}

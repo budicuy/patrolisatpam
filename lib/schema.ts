@@ -49,6 +49,7 @@ export const patrolHistory = pgTable("patrol_history", {
   locationId: integer("location_id")
     .references(() => locations.id)
     .notNull(),
+  roundNumber: integer("round_number").default(1).notNull(), // Patrol round (1-5)
   checkInTime: timestamp("check_in_time").defaultNow().notNull(),
   status: text("status", { enum: ["aman", "tidak_aman"] })
     .default("aman")

@@ -1,6 +1,7 @@
 "use server";
 
 import { and, count, desc, eq, gte, lt } from "drizzle-orm";
+import { TOTAL_ROUNDS } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { locations, patrolHistory, shifts, users } from "@/lib/schema";
 
@@ -59,11 +60,12 @@ export async function getUnpatrolledLocations(dateString: string) {
     })
     .from(shifts);
 
-  // Get all patrol logs for this date with their shift info
+  // Get all patrol logs for this date with their shift and round info
   const patrolLogs = await db
     .select({
       locationId: patrolHistory.locationId,
       shiftId: patrolHistory.shiftId,
+      roundNumber: patrolHistory.roundNumber,
     })
     .from(patrolHistory)
     .where(
@@ -73,21 +75,45 @@ export async function getUnpatrolledLocations(dateString: string) {
       ),
     );
 
-  // Group patrolled locations by shift
-  const patrolledByShift: Record<number, Set<number>> = {};
+  // Group patrolled locations by shift and round
+  // Structure: { shiftId: { roundNumber: Set<locationId> } }
+  const patrolledByShiftRound: Record<number, Record<number, Set<number>>> = {};
+
   for (const log of patrolLogs) {
     if (log.shiftId) {
-      if (!patrolledByShift[log.shiftId]) {
-        patrolledByShift[log.shiftId] = new Set();
+      if (!patrolledByShiftRound[log.shiftId]) {
+        patrolledByShiftRound[log.shiftId] = {};
       }
-      patrolledByShift[log.shiftId].add(log.locationId);
+      const round = log.roundNumber || 1;
+      if (!patrolledByShiftRound[log.shiftId][round]) {
+        patrolledByShiftRound[log.shiftId][round] = new Set();
+      }
+      patrolledByShiftRound[log.shiftId][round].add(log.locationId);
     }
   }
 
-  // Build result: for each shift, list unpatrolled locations
+  // Build result: for each shift, show round-by-round progress
   const result = allShifts.map((shift) => {
-    const patrolledIds = patrolledByShift[shift.id] || new Set();
-    const unpatrolled = allLocations.filter((loc) => !patrolledIds.has(loc.id));
+    const shiftRounds = patrolledByShiftRound[shift.id] || {};
+
+    // Calculate per-round status
+    const roundsStatus = [];
+    for (let r = 1; r <= TOTAL_ROUNDS; r++) {
+      const patrolledInRound = shiftRounds[r] || new Set();
+      const unpatrolled = allLocations.filter((loc) => !patrolledInRound.has(loc.id));
+      roundsStatus.push({
+        roundNumber: r,
+        patrolledCount: patrolledInRound.size,
+        unpatrolledLocations: unpatrolled,
+        isComplete: patrolledInRound.size >= allLocations.length,
+      });
+    }
+
+    const completedRounds = roundsStatus.filter((r) => r.isComplete).length;
+    const totalPatrolled = Object.values(shiftRounds).reduce(
+      (sum, set) => sum + set.size,
+      0
+    );
 
     return {
       shift: {
@@ -96,9 +122,12 @@ export async function getUnpatrolledLocations(dateString: string) {
         startTime: shift.startTime,
         endTime: shift.endTime,
       },
-      unpatrolledLocations: unpatrolled,
+      rounds: roundsStatus,
+      completedRounds,
+      totalRounds: TOTAL_ROUNDS,
       totalLocations: allLocations.length,
-      patrolledCount: patrolledIds.size,
+      totalPatrolled,
+      isFullyComplete: completedRounds >= TOTAL_ROUNDS,
     };
   });
 
