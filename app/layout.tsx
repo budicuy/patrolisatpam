@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Poppins, Quicksand } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
+import { ProgressBarProvider } from "@/components/providers/progress-bar";
 import SessionProvider from "@/components/providers/session-provider";
 
 const poppins = Poppins({
@@ -28,7 +29,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${poppins.variable} ${quicksand.variable} antialiased`}>
-        <SessionProvider>{children}</SessionProvider>
+        <ProgressBarProvider>
+          <SessionProvider>{children}</SessionProvider>
+        </ProgressBarProvider>
         <Toaster
           position="top-center"
           reverseOrder={false}
