@@ -2,11 +2,13 @@
 
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { AlertTriangle, CheckCircle, Clock, MapPin } from "lucide-react";
+import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Clock, MapPin } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { getUnpatrolledLocations } from "@/app/actions/stats";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface Location {
   id: number;
@@ -42,6 +44,8 @@ export function UnpatrolledWarning() {
   const [shiftStatuses, setShiftStatuses] = useState<ShiftStatus[]>([]);
   const [isPending, startTransition] = useTransition();
 
+  const [expandedShift, setExpandedShift] = useState<number | null>(null);
+
   useEffect(() => {
     startTransition(async () => {
       const result = await getUnpatrolledLocations(selectedDate);
@@ -53,144 +57,203 @@ export function UnpatrolledWarning() {
     locale: id,
   });
 
-  // Check if all shifts are fully complete
   const allComplete = shiftStatuses.every((s) => s.isFullyComplete);
 
+  const toggleExpand = (id: number) => {
+    setExpandedShift(expandedShift === id ? null : id);
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-        <div className="w-full sm:w-auto">
-          <Label htmlFor="warning-date" className="mb-2 block text-sm">
-            Pilih Tanggal
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-gray-100 pb-6">
+        <div>
+          <Label htmlFor="warning-date" className="text-gray-500 font-medium mb-1.5 block">
+            Filter Tanggal
           </Label>
-          <Input
-            type="date"
-            id="warning-date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full sm:w-[200px]"
-          />
+          <div className="flex items-center gap-3">
+            <Input
+              type="date"
+              id="warning-date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-full sm:w-[180px] h-10 bg-gray-50 border-gray-200 focus:border-blue-500 focus:ring-blue-500 transition-all font-medium"
+            />
+            <span className="text-sm font-medium text-gray-900 bg-gray-100 px-3 py-2 rounded-md hidden sm:block">
+              {formattedDate}
+            </span>
+          </div>
         </div>
-        <p className="text-sm text-gray-500">{formattedDate}</p>
       </div>
 
       {isPending ? (
-        <div className="flex items-center justify-center py-8 text-gray-400">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+        <div className="flex flex-col items-center justify-center py-12 text-gray-400 gap-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+          <p className="text-sm font-medium">Memuat data patroli...</p>
         </div>
       ) : allComplete ? (
-        <div className="flex items-center gap-3 p-4 rounded-lg bg-green-50 border border-green-200">
-          <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
-          <p className="text-green-700 font-medium">
-            Semua shift sudah menyelesaikan {shiftStatuses[0]?.totalRounds || 5} putaran patroli! 🎉
+        <div className="flex flex-col items-center justify-center py-12 px-4 rounded-xl bg-green-50/50 border border-green-100 text-center">
+          <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+            <CheckCircle className="h-8 w-8 text-green-600" />
+          </div>
+          <h3 className="text-lg font-bold text-green-800 mb-1">Semua Aman! 🎉</h3>
+          <p className="text-green-600">
+            Semua shift sudah menyelesaikan {shiftStatuses[0]?.totalRounds || 5} putaran patroli pada tanggal ini.
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4">
           {shiftStatuses.map((status) => {
             const progressPercent = Math.round(
               (status.completedRounds / status.totalRounds) * 100
             );
+            const isExpanded = expandedShift === status.shift.id;
 
             return (
               <div
                 key={status.shift.id}
-                className={`rounded-lg border ${status.isFullyComplete
-                    ? "bg-green-50 border-green-200"
-                    : "bg-amber-50 border-amber-200"
-                  }`}
+                className={cn(
+                  "group relative overflow-hidden rounded-xl bg-white border transition-all duration-200",
+                  status.isFullyComplete
+                    ? "border-green-100 shadow-sm hover:shadow-md hover:border-green-200"
+                    : "border-amber-100 shadow-sm hover:shadow-md hover:border-amber-200"
+                )}
               >
-                {/* Shift Header */}
+                {/* Status Bar */}
                 <div
-                  className={`flex items-center justify-between px-4 py-3 border-b ${status.isFullyComplete ? "border-green-200" : "border-amber-200"
-                    }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`rounded-full p-2 ${status.isFullyComplete ? "bg-green-100" : "bg-amber-100"
-                        }`}
-                    >
-                      <Clock
-                        className={`h-4 w-4 ${status.isFullyComplete ? "text-green-600" : "text-amber-600"
-                          }`}
-                      />
+                  className={cn(
+                    "absolute left-0 top-0 bottom-0 w-1",
+                    status.isFullyComplete ? "bg-green-500" : "bg-amber-500"
+                  )}
+                />
+
+                <div className="p-5 pl-7">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-4">
+                      <div
+                        className={cn(
+                          "rounded-xl p-3 shrink-0",
+                          status.isFullyComplete ? "bg-green-50" : "bg-amber-50"
+                        )}
+                      >
+                        <Clock
+                          className={cn(
+                            "h-6 w-6",
+                            status.isFullyComplete ? "text-green-600" : "text-amber-600"
+                          )}
+                        />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-gray-900 text-lg">
+                          {status.shift.name}
+                        </h4>
+                        <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                          <span className="font-medium bg-gray-100 px-2 py-0.5 rounded text-gray-700">
+                            {status.shift.startTime} - {status.shift.endTime}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900">
-                        {status.shift.name}
-                      </h4>
-                      <p className="text-xs text-gray-500">
-                        {status.shift.startTime} - {status.shift.endTime}
-                      </p>
+
+                    <div className="flex items-center gap-6 self-end sm:self-auto w-full sm:w-auto justify-between sm:justify-end">
+                      <div className="text-right">
+                        <p className={cn(
+                          "text-2xl font-bold font-sans",
+                          status.isFullyComplete ? "text-green-600" : "text-amber-600"
+                        )}>
+                          {status.completedRounds}<span className="text-sm font-medium text-gray-400">/{status.totalRounds}</span>
+                        </p>
+                        <p className="text-xs font-medium text-gray-400">Putaran Selesai</p>
+                      </div>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleExpand(status.shift.id)}
+                        className={cn(
+                          "bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-lg h-10 w-10 p-0",
+                          isExpanded && "bg-gray-100"
+                        )}
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="h-5 w-5" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5" />
+                        )}
+                      </Button>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p
-                      className={`text-sm font-bold ${status.isFullyComplete ? "text-green-600" : "text-amber-600"
-                        }`}
-                    >
-                      {status.completedRounds}/{status.totalRounds} Putaran
-                    </p>
-                    <p className="text-xs text-gray-500">{progressPercent}%</p>
+
+                  {/* Progress Bar */}
+                  <div className="mt-4 w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        status.isFullyComplete ? "bg-green-500" : "bg-amber-500"
+                      )}
+                      style={{ width: `${progressPercent}%` }}
+                    />
                   </div>
                 </div>
 
-                {/* Round Progress */}
-                <div className="p-4">
-                  <div className="flex gap-2 mb-3">
-                    {status.rounds.map((round) => (
-                      <div
-                        key={round.roundNumber}
-                        className={`flex-1 h-2 rounded-full ${round.isComplete ? "bg-green-500" : "bg-gray-200"
-                          }`}
-                        title={`Putaran ${round.roundNumber}: ${round.patrolledCount}/${status.totalLocations}`}
-                      />
-                    ))}
-                  </div>
-
-                  {status.isFullyComplete ? (
-                    <div className="flex items-center gap-2 text-green-600">
-                      <CheckCircle className="h-4 w-4" />
-                      <span className="text-sm font-medium">
-                        Semua putaran selesai ✓
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {status.rounds.map((round) => {
-                        if (round.isComplete) return null;
-                        return (
-                          <div key={round.roundNumber} className="text-sm">
-                            <div className="flex items-center gap-2 text-amber-600 mb-1">
-                              <AlertTriangle className="h-3 w-3" />
-                              <span className="font-medium">
-                                Putaran {round.roundNumber}: {round.patrolledCount}/{status.totalLocations} lokasi
-                              </span>
-                            </div>
-                            {round.unpatrolledLocations.length > 0 && (
-                              <div className="flex flex-wrap gap-1 ml-5">
-                                {round.unpatrolledLocations.slice(0, 5).map((loc) => (
-                                  <span
-                                    key={loc.id}
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white border border-amber-100 text-xs"
-                                  >
-                                    <MapPin className="h-2 w-2 text-amber-500" />
-                                    {loc.name}
-                                  </span>
-                                ))}
-                                {round.unpatrolledLocations.length > 5 && (
-                                  <span className="text-xs text-gray-500">
-                                    +{round.unpatrolledLocations.length - 5} lainnya
-                                  </span>
-                                )}
-                              </div>
+                {/* Expanded Details */}
+                {isExpanded && (
+                  <div className="border-t border-gray-100 bg-gray-50/50 p-5 pl-7 animate-in slide-in-from-top-2 duration-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {status.rounds.map((round) => (
+                        <div
+                          key={round.roundNumber}
+                          className={cn(
+                            "relative overflow-hidden rounded-lg border bg-white p-3 transition-all",
+                            round.isComplete
+                              ? "border-green-100 bg-green-50/10"
+                              : "border-amber-100 bg-amber-50/10"
+                          )}
+                        >
+                          <div className="flex justify-between items-center mb-2">
+                            <span className={cn(
+                              "text-sm font-bold px-2 py-0.5 rounded-md",
+                              round.isComplete
+                                ? "bg-green-100 text-green-700"
+                                : "bg-amber-100 text-amber-700"
+                            )}>
+                              Putaran {round.roundNumber}
+                            </span>
+                            {round.isComplete ? (
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <AlertTriangle className="h-4 w-4 text-amber-500" />
                             )}
                           </div>
-                        );
-                      })}
+
+                          {round.isComplete ? (
+                            <p className="text-xs font-medium text-gray-500">Semua {status.totalLocations} titik selesai.</p>
+                          ) : (
+                            <div className="space-y-2">
+                              <p className="text-xs font-medium text-gray-500">
+                                {round.patrolledCount}/{status.totalLocations} titik dipatroli
+                              </p>
+                              {round.unpatrolledLocations.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {round.unpatrolledLocations.slice(0, 3).map(loc => (
+                                    <span key={loc.id} className="inline-flex items-center px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50 text-[10px] font-medium text-gray-600">
+                                      <MapPin className="h-2 w-2 mr-1 text-gray-400" />
+                                      {loc.name}
+                                    </span>
+                                  ))}
+                                  {round.unpatrolledLocations.length > 3 && (
+                                    <span className="text-[10px] text-gray-400 font-medium py-0.5">
+                                      +{round.unpatrolledLocations.length - 3} lainnya
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             );
           })}

@@ -5,6 +5,9 @@ import { db } from "@/lib/db";
 import { locations, patrolHistory, users } from "@/lib/schema";
 import { PatrolStatsChart } from "./_components/patrol-stats-chart";
 import { UnpatrolledWarning } from "./_components/unpatrolled-warning";
+import { StatCard } from "./_components/stat-card";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
 
 async function getStats() {
   "use server";
@@ -22,75 +25,65 @@ async function getStats() {
 export default async function AdminDashboard() {
   const stats = await getStats();
   const patrolStatsByUser = await getPatrolStatsByUser();
+  const today = new Date();
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold font-sans">Dashboard Admin</h1>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
+          <p className="text-gray-500 mt-1">
+            Overview status patroli satpam hari ini, {format(today, "EEEE, d MMMM yyyy", { locale: id })}
+          </p>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {/* Card Locations */}
-        <div className="overflow-hidden rounded-xl bg-white p-6 shadow-md transition-all hover:shadow-lg">
-          <div className="flex items-center">
-            <div className="rounded-full bg-blue-100 p-3">
-              <MapPin className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Total Lokasi</p>
-              <h3 className="text-2xl font-bold text-gray-900">
-                {stats.locations}
-              </h3>
-            </div>
-          </div>
-        </div>
-
-        {/* Card Users */}
-        <div className="overflow-hidden rounded-xl bg-white p-6 shadow-md transition-all hover:shadow-lg">
-          <div className="flex items-center">
-            <div className="rounded-full bg-green-100 p-3">
-              <Users className="h-6 w-6 text-green-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Total Petugas</p>
-              <h3 className="text-2xl font-bold text-gray-900">
-                {stats.users}
-              </h3>
-            </div>
-          </div>
-        </div>
-
-        {/* Card Patrols */}
-        <div className="overflow-hidden rounded-xl bg-white p-6 shadow-md transition-all hover:shadow-lg">
-          <div className="flex items-center">
-            <div className="rounded-full bg-purple-100 p-3">
-              <History className="h-6 w-6 text-purple-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Total Patroli</p>
-              <h3 className="text-2xl font-bold text-gray-900">
-                {stats.patrols}
-              </h3>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          label="Total Lokasi"
+          value={stats.locations}
+          icon={MapPin}
+          iconClassName="bg-blue-100 text-blue-600"
+          className="border-blue-100"
+          description="Titik patroli terdaftar"
+        />
+        <StatCard
+          label="Total Petugas"
+          value={stats.users}
+          icon={Users}
+          iconClassName="bg-green-100 text-green-600"
+          className="border-green-100"
+          description="Satpam aktif"
+        />
+        <StatCard
+          label="Total Riwayat"
+          value={stats.patrols}
+          icon={History}
+          iconClassName="bg-purple-100 text-purple-600"
+          className="border-purple-100"
+          description="Total aktivitas patroli"
+        />
       </div>
 
-      {/* Patrol Statistics Chart */}
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900">
-          Statistik Patroli per Petugas
-        </h2>
-        <div className="rounded-xl bg-white p-6 shadow-md">
-          <PatrolStatsChart data={patrolStatsByUser} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Chart Area */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+              Statistik Keaktifan Petugas
+            </h2>
+            <PatrolStatsChart data={patrolStatsByUser} />
+          </div>
         </div>
-      </div>
 
-      {/* Unpatrolled Locations Warning */}
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900">
-          Status Patroli Lokasi
-        </h2>
-        <div className="rounded-xl bg-white p-6 shadow-md">
-          <UnpatrolledWarning />
+        {/* Warning / Status Sidebar */}
+        <div className="space-y-6">
+          <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+              Status Patroli Harian
+            </h2>
+            <UnpatrolledWarning />
+          </div>
         </div>
       </div>
     </div>
