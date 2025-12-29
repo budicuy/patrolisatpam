@@ -28,14 +28,12 @@ export default async function AdminDashboard() {
   const today = new Date();
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
-          <p className="text-gray-500 mt-1">
-            Overview status patroli satpam hari ini, {format(today, "EEEE, d MMMM yyyy", { locale: id })}
-          </p>
-        </div>
+    <div className="space-y-8 animate-in fade-in duration-500 pb-10">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Dashboard</h1>
+        <p className="text-sm text-gray-500">
+          Overview status patroli satpam hari ini, {format(today, "EEEE, d MMMM yyyy", { locale: id })}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -43,46 +41,48 @@ export default async function AdminDashboard() {
           label="Total Lokasi"
           value={stats.locations}
           icon={MapPin}
-          iconClassName="bg-blue-100 text-blue-600"
-          className="border-blue-100"
+          variant="blue"
           description="Titik patroli terdaftar"
         />
         <StatCard
           label="Total Petugas"
           value={stats.users}
           icon={Users}
-          iconClassName="bg-green-100 text-green-600"
-          className="border-green-100"
+          variant="green"
           description="Satpam aktif"
         />
         <StatCard
           label="Total Riwayat"
           value={stats.patrols}
           icon={History}
-          iconClassName="bg-purple-100 text-purple-600"
-          className="border-purple-100"
+          variant="purple"
           description="Total aktivitas patroli"
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Chart Area */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">
-              Statistik Keaktifan Petugas
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        {/* Warning / Status Sidebar - Takes 2 columns (Wider than before) */}
+        {/* Swapped position to Left/Top as requested implicitly or just to differentiate layout */}
+        <div className="lg:col-span-2">
+          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm h-full flex flex-col">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 px-1">
+              Status Patroli Harian
             </h2>
-            <PatrolStatsChart data={patrolStatsByUser} />
+            <div className="flex-1 min-h-0">
+              <UnpatrolledWarning />
+            </div>
           </div>
         </div>
 
-        {/* Warning / Status Sidebar */}
-        <div className="space-y-6">
-          <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">
-              Status Patroli Harian
+        {/* Main Chart Area - Takes 3 columns (Smaller than before) */}
+        <div className="lg:col-span-3">
+          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm h-full">
+            <h2 className="text-lg font-bold text-gray-900 mb-6">
+              Statistik Keaktifan Petugas
             </h2>
-            <UnpatrolledWarning />
+            <div className="w-full">
+              <PatrolStatsChart data={patrolStatsByUser} />
+            </div>
           </div>
         </div>
       </div>

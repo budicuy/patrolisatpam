@@ -8,68 +8,75 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  TooltipProps,
 } from "recharts";
+import { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 
 interface PatrolStatsChartProps {
-  data: { name: string; patrols: number }[];
+  data: {
+    name: string;
+    patrols: number;
+  }[];
 }
 
-export function PatrolStatsChart({ data }: PatrolStatsChartProps) {
-  if (data.length === 0) {
+const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
+  if (active && payload && payload.length) {
     return (
-      <div className="flex flex-col items-center justify-center h-[300px] text-gray-500 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
-        <p className="font-medium">Belum ada data patroli</p>
-        <p className="text-sm text-gray-400">Data akan muncul setelah aktifitas dimulai</p>
+      <div className="rounded-lg border border-gray-100 bg-white p-3 shadow-lg">
+        <p className="mb-1 text-sm font-semibold text-gray-900">{label}</p>
+        <p className="text-xs font-medium text-blue-600">
+          {payload[0].value} Patroli
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+export function PatrolStatsChart({ data }: PatrolStatsChartProps) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
+        <div className="text-center">
+          <p className="text-sm font-medium text-gray-400">Belum ada data patroli</p>
+          <p className="text-xs text-gray-300 mt-1">Data akan muncul setelah petugas check-in</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-[350px]">
+    <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
           margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+          barSize={40}
         >
           <defs>
             <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.6} />
+              <stop offset="0%" stopColor="#60A5FA" stopOpacity={1} />
+              <stop offset="95%" stopColor="#93C5FD" stopOpacity={0.8} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
           <XAxis
             dataKey="name"
-            tick={{ fill: "#9ca3af", fontSize: 12, fontWeight: 500 }}
-            tickLine={false}
             axisLine={false}
+            tickLine={false}
+            tick={{ fill: "#64748b", fontSize: 12 }}
             dy={10}
           />
           <YAxis
-            tick={{ fill: "#9ca3af", fontSize: 12 }}
-            tickLine={false}
             axisLine={false}
-            allowDecimals={false}
-            dx={-10}
+            tickLine={false}
+            tick={{ fill: "#64748b", fontSize: 12 }}
           />
-          <Tooltip
-            cursor={{ fill: "#f9fafb" }}
-            contentStyle={{
-              backgroundColor: "#ffffff",
-              border: "none",
-              borderRadius: "12px",
-              boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
-              padding: "12px 16px",
-            }}
-            itemStyle={{ color: "#374151", fontSize: "14px", fontWeight: "600" }}
-            labelStyle={{ color: "#9ca3af", fontSize: "12px", marginBottom: "4px" }}
-            formatter={(value) => [`${value} Patroli`, "Total"]}
-          />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: "#f8fafc" }} />
           <Bar
             dataKey="patrols"
             fill="url(#barGradient)"
-            radius={[6, 6, 0, 0]}
-            maxBarSize={60}
+            radius={[8, 8, 0, 0]}
           />
         </BarChart>
       </ResponsiveContainer>
