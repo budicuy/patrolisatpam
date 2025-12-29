@@ -70,12 +70,12 @@ export function UnpatrolledWarning() {
         <label className="text-sm font-medium text-gray-500">Filter Tanggal</label>
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative w-full sm:w-auto">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
             <Input
               type="date"
               value={selectedDateString}
               onChange={(e) => setSelectedDateString(e.target.value)}
-              className="pl-9 w-full sm:w-[150px] bg-white border-gray-200 focus:border-blue-500 transition-all font-medium h-9 text-sm"
+              className="pl-9 w-full sm:w-[150px] bg-white border-gray-200 focus:border-blue-500 transition-all font-medium h-9 text-sm [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer relative"
             />
           </div>
           <div className="flex-1 flex items-center px-3 py-1.5 bg-gray-50 rounded-md border border-gray-200 text-xs sm:text-sm font-medium text-gray-600 h-9 truncate">
