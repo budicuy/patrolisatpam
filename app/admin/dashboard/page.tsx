@@ -62,7 +62,6 @@ export default async function AdminDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         {/* Warning / Status Sidebar - Takes 2 columns (Wider than before) */}
-        {/* Swapped position to Left/Top as requested implicitly or just to differentiate layout */}
         <div className="lg:col-span-2">
           <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm h-full flex flex-col">
             <h2 className="text-lg font-bold text-gray-900 mb-4 px-1">
@@ -76,11 +75,11 @@ export default async function AdminDashboard() {
 
         {/* Main Chart Area - Takes 3 columns (Smaller than before) */}
         <div className="lg:col-span-3">
-          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm h-full">
+          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm h-full flex flex-col">
             <h2 className="text-lg font-bold text-gray-900 mb-6">
               Statistik Keaktifan Petugas
             </h2>
-            <div className="w-full">
+            <div className="w-full flex-1 min-h-0">
               <PatrolStatsChart data={patrolStatsByUser} />
             </div>
           </div>
