@@ -8,9 +8,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  TooltipProps,
 } from "recharts";
-import { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 
 interface PatrolStatsChartProps {
   data: {
@@ -19,7 +17,13 @@ interface PatrolStatsChartProps {
   }[];
 }
 
-const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{ value: number }>;
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-lg border border-gray-100 bg-white p-3 shadow-lg">
