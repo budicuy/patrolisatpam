@@ -404,8 +404,8 @@ export default function PatrolInterface({
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center bg-gray-50 p-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl text-center">
-          <div className="mb-6 mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-blue-100">
-            <MapPin className="h-10 w-10 text-blue-600" />
+          <div className="mb-6 mx-auto flex h-20 w-48 items-center justify-center">
+            <Image src="/logo.webp" alt="Logo" width={210} height={90} className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Mulai Patroli

@@ -1,14 +1,16 @@
 "use client";
 
-import { Lock, Shield, User } from "lucide-react";
+import { Eye, EyeOff, Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -42,13 +44,10 @@ export default function LoginPage() {
     <div className="flex min-h-dvh items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 rounded-2xl bg-white p-10 shadow-xl">
         <div className="text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-            <Shield className="h-10 w-10 text-blue-600" />
+          <div className="mx-auto flex h-20 w-48 items-center justify-center">
+            <Image src="/logo.webp" alt="Logo" width={210} height={90} className="w-full h-full object-contain" />
           </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Patroli Satpam
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-4 text-sm text-gray-600">
             Silakan masuk untuk memulai sesi
           </p>
         </div>
@@ -77,13 +76,24 @@ export default function LoginPage() {
               <input
                 id="password"
                 name="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="block w-full rounded-b-md border border-gray-300 bg-white py-3 pl-10 pr-3 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                className="block w-full rounded-b-md border border-gray-300 bg-white py-3 pl-10 pr-10 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
                 placeholder="Kata Sandi"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
             </div>
           </div>
 
