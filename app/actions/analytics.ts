@@ -187,6 +187,134 @@ export async function getSafeUnsafeStats(year: number) {
     });
 }
 
+// === COMBINED: Get All Dashboard Data in Single Call ===
+export async function getAllDashboardData(year: number, month: number) {
+    const monthStart = startOfMonth(new Date(year, month - 1));
+    const monthEnd = endOfMonth(new Date(year, month - 1));
+    const yearStart = startOfYear(new Date(year, 0));
+    const yearEnd = endOfYear(new Date(year, 0));
+
+    // Run all queries in parallel
+    const [dailyResult, weeklyResult, monthlyResult, safeUnsafeResult, userStatsResult] = await Promise.all([
+        // Daily stats
+        db.select({
+            day: sql<number>`EXTRACT(DAY FROM ${patrolHistory.checkInTime})::int`.as("day"),
+            count: count(patrolHistory.id),
+        })
+            .from(patrolHistory)
+            .where(and(gte(patrolHistory.checkInTime, monthStart), lte(patrolHistory.checkInTime, monthEnd)))
+            .groupBy(sql`EXTRACT(DAY FROM ${patrolHistory.checkInTime})`)
+            .orderBy(sql`EXTRACT(DAY FROM ${patrolHistory.checkInTime})`),
+
+        // Weekly stats
+        db.select({
+            week: sql<number>`EXTRACT(WEEK FROM ${patrolHistory.checkInTime})::int`.as("week"),
+            count: count(patrolHistory.id),
+        })
+            .from(patrolHistory)
+            .where(and(gte(patrolHistory.checkInTime, monthStart), lte(patrolHistory.checkInTime, monthEnd)))
+            .groupBy(sql`EXTRACT(WEEK FROM ${patrolHistory.checkInTime})`)
+            .orderBy(sql`EXTRACT(WEEK FROM ${patrolHistory.checkInTime})`),
+
+        // Monthly stats
+        db.select({
+            month: sql<number>`EXTRACT(MONTH FROM ${patrolHistory.checkInTime})::int`.as("month"),
+            count: count(patrolHistory.id),
+        })
+            .from(patrolHistory)
+            .where(and(gte(patrolHistory.checkInTime, yearStart), lte(patrolHistory.checkInTime, yearEnd)))
+            .groupBy(sql`EXTRACT(MONTH FROM ${patrolHistory.checkInTime})`)
+            .orderBy(sql`EXTRACT(MONTH FROM ${patrolHistory.checkInTime})`),
+
+        // Safe/Unsafe stats
+        db.select({
+            month: sql<number>`EXTRACT(MONTH FROM ${patrolHistory.checkInTime})::int`.as("month"),
+            status: patrolHistory.status,
+            count: count(patrolHistory.id),
+        })
+            .from(patrolHistory)
+            .where(and(gte(patrolHistory.checkInTime, yearStart), lte(patrolHistory.checkInTime, yearEnd)))
+            .groupBy(sql`EXTRACT(MONTH FROM ${patrolHistory.checkInTime})`, patrolHistory.status),
+
+        // User stats
+        db.select({
+            userId: patrolHistory.userId,
+            name: users.name,
+            count: count(patrolHistory.id),
+        })
+            .from(patrolHistory)
+            .leftJoin(users, eq(patrolHistory.userId, users.id))
+            .where(and(gte(patrolHistory.checkInTime, monthStart), lte(patrolHistory.checkInTime, monthEnd)))
+            .groupBy(patrolHistory.userId, users.name)
+            .orderBy(sql`count(${patrolHistory.id}) DESC`),
+    ]);
+
+    // Process daily data
+    const daysInMonth = monthEnd.getDate();
+    const dailyMap = new Map(dailyResult.map((r) => [r.day, Number(r.count)]));
+    const daily = Array.from({ length: daysInMonth }, (_, i) => ({
+        label: String(i + 1),
+        value: dailyMap.get(i + 1) || 0,
+        date: format(new Date(year, month - 1, i + 1), "yyyy-MM-dd"),
+    }));
+
+    // Process weekly data
+    const weeks = eachWeekOfInterval({ start: monthStart, end: monthEnd }, { weekStartsOn: 1 });
+    const weeklyMap = new Map(weeklyResult.map((r) => [r.week, Number(r.count)]));
+    const weekly = weeks.map((weekStart) => {
+        const weekEnd2 = endOfWeek(weekStart, { weekStartsOn: 1 });
+        const actualEnd = weekEnd2 > monthEnd ? monthEnd : weekEnd2;
+        const actualStart = weekStart < monthStart ? monthStart : weekStart;
+        const weekNum = parseInt(format(weekStart, "w"));
+        return {
+            label: `${format(actualStart, "d MMM", { locale: id })} - ${format(actualEnd, "d MMM", { locale: id })}`,
+            value: weeklyMap.get(weekNum) || 0,
+            date: format(weekStart, "yyyy-MM-dd"),
+        };
+    });
+
+    // Process monthly data
+    const months = eachMonthOfInterval({ start: yearStart, end: yearEnd });
+    const monthlyMap = new Map(monthlyResult.map((r) => [r.month, Number(r.count)]));
+    const monthly = months.map((m, idx) => ({
+        label: format(m, "MMM", { locale: id }),
+        value: monthlyMap.get(idx + 1) || 0,
+        date: format(m, "yyyy-MM"),
+    }));
+
+    // Process safe/unsafe data
+    const monthStats = new Map<number, { safe: number; unsafe: number }>();
+    for (const row of safeUnsafeResult) {
+        const m = row.month;
+        if (!monthStats.has(m)) {
+            monthStats.set(m, { safe: 0, unsafe: 0 });
+        }
+        const stats = monthStats.get(m)!;
+        if (row.status === "aman") {
+            stats.safe = Number(row.count);
+        } else if (row.status === "tidak_aman") {
+            stats.unsafe = Number(row.count);
+        }
+    }
+    const safeUnsafe = months.map((m, idx) => {
+        const stats = monthStats.get(idx + 1) || { safe: 0, unsafe: 0 };
+        return {
+            label: format(m, "MMM", { locale: id }),
+            safe: stats.safe,
+            unsafe: stats.unsafe,
+            date: format(m, "yyyy-MM"),
+        };
+    });
+
+    // Process user stats
+    const userStats = userStatsResult.map((row) => ({
+        name: row.name || "Unknown",
+        patrols: Number(row.count),
+    }));
+
+    return { daily, weekly, monthly, safeUnsafe, userStats };
+}
+
 // === Patrol Stats by User (already optimized with GROUP BY) ===
 export async function getPatrolStatsByUserFiltered(year: number, month?: number) {
     const startDate = month

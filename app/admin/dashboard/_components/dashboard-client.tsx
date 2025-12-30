@@ -3,11 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import toast from "react-hot-toast";
 import {
-    getDailyPatrolStats,
-    getWeeklyPatrolStats,
-    getMonthlyPatrolStats,
-    getSafeUnsafeStats,
-    getPatrolStatsByUserFiltered,
+    getAllDashboardData,
     getPatrolExportData,
     getAvailableYears,
 } from "@/app/actions/analytics";
@@ -56,21 +52,15 @@ export function DashboardClient() {
         });
     }, []);
 
-    // Fetch all data on filter change
+    // Fetch all data on filter change - SINGLE COMBINED CALL
     useEffect(() => {
         startTransition(async () => {
-            const [daily, weekly, monthly, safeUnsafe, users] = await Promise.all([
-                getDailyPatrolStats(selectedYear, selectedMonth),
-                getWeeklyPatrolStats(selectedYear, selectedMonth),
-                getMonthlyPatrolStats(selectedYear),
-                getSafeUnsafeStats(selectedYear),
-                getPatrolStatsByUserFiltered(selectedYear, selectedMonth),
-            ]);
-            setDailyData(daily);
-            setWeeklyData(weekly);
-            setMonthlyData(monthly);
-            setSafeUnsafeData(safeUnsafe);
-            setUserStats(users);
+            const data = await getAllDashboardData(selectedYear, selectedMonth);
+            setDailyData(data.daily);
+            setWeeklyData(data.weekly);
+            setMonthlyData(data.monthly);
+            setSafeUnsafeData(data.safeUnsafe);
+            setUserStats(data.userStats);
         });
     }, [selectedMonth, selectedYear]);
 
