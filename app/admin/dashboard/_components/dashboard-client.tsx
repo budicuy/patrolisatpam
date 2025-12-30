@@ -1,0 +1,247 @@
+"use client";
+
+import { useEffect, useState, useTransition } from "react";
+import toast from "react-hot-toast";
+import {
+    getDailyPatrolStats,
+    getWeeklyPatrolStats,
+    getMonthlyPatrolStats,
+    getSafeUnsafeStats,
+    getPatrolStatsByUserFiltered,
+    getPatrolExportData,
+    getAvailableYears,
+} from "@/app/actions/analytics";
+import { DashboardFilters } from "./dashboard-filters";
+import { PatrolStatsChart } from "./patrol-stats-chart";
+import { UnpatrolledWarning } from "./unpatrolled-warning";
+import { LineAreaChart } from "./line-area-chart";
+import { SafeUnsafeChart } from "./safe-unsafe-chart";
+import { exportToExcel, exportToPdf } from "@/lib/export-utils";
+
+interface ChartDataPoint {
+    label: string;
+    value: number;
+    date?: string;
+}
+
+interface SafeUnsafePoint {
+    label: string;
+    safe: number;
+    unsafe: number;
+    date: string;
+}
+
+export function DashboardClient() {
+    const today = new Date();
+    const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
+    const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+    const [availableYears, setAvailableYears] = useState<number[]>([today.getFullYear()]);
+    const [isPending, startTransition] = useTransition();
+    const [isExporting, setIsExporting] = useState(false);
+
+    // Data states
+    const [dailyData, setDailyData] = useState<ChartDataPoint[]>([]);
+    const [weeklyData, setWeeklyData] = useState<ChartDataPoint[]>([]);
+    const [monthlyData, setMonthlyData] = useState<ChartDataPoint[]>([]);
+    const [safeUnsafeData, setSafeUnsafeData] = useState<SafeUnsafePoint[]>([]);
+    const [userStats, setUserStats] = useState<{ name: string; patrols: number }[]>([]);
+
+    // Fetch available years on mount
+    useEffect(() => {
+        getAvailableYears().then((years) => {
+            setAvailableYears(years);
+            if (years.length > 0 && !years.includes(selectedYear)) {
+                setSelectedYear(years[0]);
+            }
+        });
+    }, []);
+
+    // Fetch all data on filter change
+    useEffect(() => {
+        startTransition(async () => {
+            const [daily, weekly, monthly, safeUnsafe, users] = await Promise.all([
+                getDailyPatrolStats(selectedYear, selectedMonth),
+                getWeeklyPatrolStats(selectedYear, selectedMonth),
+                getMonthlyPatrolStats(selectedYear),
+                getSafeUnsafeStats(selectedYear),
+                getPatrolStatsByUserFiltered(selectedYear, selectedMonth),
+            ]);
+            setDailyData(daily);
+            setWeeklyData(weekly);
+            setMonthlyData(monthly);
+            setSafeUnsafeData(safeUnsafe);
+            setUserStats(users);
+        });
+    }, [selectedMonth, selectedYear]);
+
+    const handleExportExcel = async () => {
+        setIsExporting(true);
+        try {
+            const data = await getPatrolExportData(selectedYear, selectedMonth);
+            exportToExcel(data, `riwayat-patroli-${selectedYear}-${selectedMonth}`);
+            toast.success("Berhasil export ke Excel!");
+        } catch (error) {
+            toast.error("Gagal export ke Excel");
+            console.error(error);
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleExportPdf = async () => {
+        setIsExporting(true);
+        try {
+            const data = await getPatrolExportData(selectedYear, selectedMonth);
+            const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleString("id-ID", { month: "long" });
+            exportToPdf(data, `laporan-patroli-${monthName}-${selectedYear}`, {
+                start: `${selectedYear}-${selectedMonth.toString().padStart(2, "0")}-01`,
+                end: `${selectedYear}-${selectedMonth.toString().padStart(2, "0")}-31`,
+            });
+            toast.success("Berhasil export ke PDF!");
+        } catch (error) {
+            toast.error("Gagal export ke PDF");
+            console.error(error);
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleString("id-ID", { month: "long" });
+
+    return (
+        <div className="space-y-6">
+            {/* Unified Filters */}
+            <DashboardFilters
+                selectedMonth={selectedMonth}
+                selectedYear={selectedYear}
+                availableYears={availableYears}
+                onMonthChange={setSelectedMonth}
+                onYearChange={setSelectedYear}
+                onExportExcel={handleExportExcel}
+                onExportPdf={handleExportPdf}
+                isExporting={isExporting}
+            />
+
+            {/* 4-Chart Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Daily Chart */}
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <div className="h-2.5 w-2.5 rounded-full bg-teal-500" />
+                            <h2 className="text-sm font-bold text-gray-900">
+                                Patroli Harian ({monthName} {selectedYear})
+                            </h2>
+                        </div>
+                        <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded">Harian</span>
+                    </div>
+                    {isPending ? (
+                        <div className="h-[180px] flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600" />
+                        </div>
+                    ) : (
+                        <LineAreaChart data={dailyData} color="teal" />
+                    )}
+                </div>
+
+                {/* Weekly Chart */}
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <div className="h-2.5 w-2.5 rounded-full bg-pink-500" />
+                            <h2 className="text-sm font-bold text-gray-900">
+                                Patroli Mingguan (Bulan {monthName})
+                            </h2>
+                        </div>
+                        <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded">Mingguan</span>
+                    </div>
+                    {isPending ? (
+                        <div className="h-[180px] flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600" />
+                        </div>
+                    ) : (
+                        <LineAreaChart data={weeklyData} color="pink" />
+                    )}
+                </div>
+
+                {/* Monthly Chart */}
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+                            <h2 className="text-sm font-bold text-gray-900">
+                                Patroli Bulanan ({selectedYear})
+                            </h2>
+                        </div>
+                        <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded">Bulanan</span>
+                    </div>
+                    {isPending ? (
+                        <div className="h-[180px] flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+                        </div>
+                    ) : (
+                        <LineAreaChart data={monthlyData} color="blue" />
+                    )}
+                </div>
+
+                {/* Safe/Unsafe Chart */}
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <div className="h-2.5 w-2.5 rounded-full bg-purple-500" />
+                            <h2 className="text-sm font-bold text-gray-900">
+                                Riwayat Aman/Tidak Aman ({selectedYear})
+                            </h2>
+                        </div>
+                        <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded">Bulanan</span>
+                    </div>
+                    {isPending ? (
+                        <div className="h-[180px] flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600" />
+                        </div>
+                    ) : (
+                        <SafeUnsafeChart data={safeUnsafeData} />
+                    )}
+                </div>
+            </div>
+
+            {/* Status + User Stats Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                {/* Status Patroli Harian */}
+                <div className="lg:col-span-2">
+                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm h-full flex flex-col">
+                        <h2 className="text-base font-bold text-gray-900 mb-4">
+                            Status Patroli Harian
+                        </h2>
+                        <div className="flex-1 min-h-0">
+                            <UnpatrolledWarning />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Statistik Keaktifan Petugas */}
+                <div className="lg:col-span-3">
+                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm h-full flex flex-col">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-base font-bold text-gray-900">
+                                Statistik Keaktifan Petugas
+                            </h2>
+                            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                {monthName} {selectedYear}
+                            </span>
+                        </div>
+                        <div className="flex-1 min-h-0">
+                            {isPending ? (
+                                <div className="h-full flex items-center justify-center">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+                                </div>
+                            ) : (
+                                <PatrolStatsChart data={userStats} />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
