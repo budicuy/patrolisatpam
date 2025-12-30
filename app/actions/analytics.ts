@@ -7,15 +7,12 @@ import { TOTAL_ROUNDS } from "@/lib/constants";
 import {
     startOfMonth,
     endOfMonth,
-    startOfWeek,
-    endOfWeek,
-    eachDayOfInterval,
     eachWeekOfInterval,
     eachMonthOfInterval,
     format,
-    getWeek,
     startOfYear,
     endOfYear,
+    endOfWeek,
 } from "date-fns";
 import { id } from "date-fns/locale";
 
@@ -31,7 +28,6 @@ export async function getAvailableYears(): Promise<number[]> {
 
     const years = result.map((r) => r.year).filter(Boolean);
 
-    // If no data, return current year as default
     if (years.length === 0) {
         return [new Date().getFullYear()];
     }
@@ -39,122 +35,15 @@ export async function getAvailableYears(): Promise<number[]> {
     return years;
 }
 
-// === Daily Stats (by month) ===
+// === OPTIMIZED: Daily Stats using SQL GROUP BY ===
 export async function getDailyPatrolStats(year: number, month: number) {
     const startDate = startOfMonth(new Date(year, month - 1));
     const endDate = endOfMonth(new Date(year, month - 1));
-    const days = eachDayOfInterval({ start: startDate, end: endDate });
 
-    const patrols = await db
-        .select({ checkInTime: patrolHistory.checkInTime })
-        .from(patrolHistory)
-        .where(
-            and(
-                gte(patrolHistory.checkInTime, startDate),
-                lte(patrolHistory.checkInTime, endDate)
-            )
-        );
-
-    return days.map((day) => {
-        const dayStart = new Date(day);
-        dayStart.setHours(0, 0, 0, 0);
-        const dayEnd = new Date(day);
-        dayEnd.setHours(23, 59, 59, 999);
-
-        const count = patrols.filter((p) => {
-            const checkDate = new Date(p.checkInTime);
-            return checkDate >= dayStart && checkDate <= dayEnd;
-        }).length;
-
-        return {
-            label: format(day, "d"),
-            value: count,
-            date: format(day, "yyyy-MM-dd"),
-        };
-    });
-}
-
-// === Weekly Stats (by month - 4-5 weeks) ===
-export async function getWeeklyPatrolStats(year: number, month: number) {
-    const startDate = startOfMonth(new Date(year, month - 1));
-    const endDate = endOfMonth(new Date(year, month - 1));
-    const weeks = eachWeekOfInterval({ start: startDate, end: endDate }, { weekStartsOn: 1 });
-
-    const patrols = await db
-        .select({ checkInTime: patrolHistory.checkInTime })
-        .from(patrolHistory)
-        .where(
-            and(
-                gte(patrolHistory.checkInTime, startDate),
-                lte(patrolHistory.checkInTime, endDate)
-            )
-        );
-
-    return weeks.map((weekStart, index) => {
-        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-        const actualEnd = weekEnd > endDate ? endDate : weekEnd;
-        const actualStart = weekStart < startDate ? startDate : weekStart;
-
-        const count = patrols.filter((p) => {
-            const checkDate = new Date(p.checkInTime);
-            return checkDate >= actualStart && checkDate <= actualEnd;
-        }).length;
-
-        return {
-            label: `${format(actualStart, "d MMM", { locale: id })} - ${format(actualEnd, "d MMM", { locale: id })}`,
-            value: count,
-            date: format(weekStart, "yyyy-MM-dd"),
-        };
-    });
-}
-
-// === Monthly Stats (by year - 12 months) ===
-export async function getMonthlyPatrolStats(year: number) {
-    const startDate = startOfYear(new Date(year, 0));
-    const endDate = endOfYear(new Date(year, 0));
-    const months = eachMonthOfInterval({ start: startDate, end: endDate });
-
-    const patrols = await db
-        .select({ checkInTime: patrolHistory.checkInTime })
-        .from(patrolHistory)
-        .where(
-            and(
-                gte(patrolHistory.checkInTime, startDate),
-                lte(patrolHistory.checkInTime, endDate)
-            )
-        );
-
-    return months.map((monthStart) => {
-        const monthEnd = endOfMonth(monthStart);
-
-        const count = patrols.filter((p) => {
-            const checkDate = new Date(p.checkInTime);
-            return checkDate >= monthStart && checkDate <= monthEnd;
-        }).length;
-
-        return {
-            label: format(monthStart, "MMM", { locale: id }),
-            value: count,
-            date: format(monthStart, "yyyy-MM"),
-        };
-    });
-}
-
-// === Safe/Unsafe Stats (by year - 12 months) ===
-export async function getSafeUnsafeStats(year: number) {
-    const startDate = startOfYear(new Date(year, 0));
-    const endDate = endOfYear(new Date(year, 0));
-    const months = eachMonthOfInterval({ start: startDate, end: endDate });
-
-    const allShifts = await db.select().from(shifts);
-    const [locationCount] = await db.select({ value: count() }).from(locations);
-    const totalLocations = locationCount.value;
-    const requiredPatrolsPerShift = totalLocations * TOTAL_ROUNDS;
-
-    const patrols = await db
+    const result = await db
         .select({
-            checkInTime: patrolHistory.checkInTime,
-            shiftId: patrolHistory.shiftId,
+            day: sql<number>`EXTRACT(DAY FROM ${patrolHistory.checkInTime})::int`.as("day"),
+            count: count(patrolHistory.id),
         })
         .from(patrolHistory)
         .where(
@@ -162,49 +51,143 @@ export async function getSafeUnsafeStats(year: number) {
                 gte(patrolHistory.checkInTime, startDate),
                 lte(patrolHistory.checkInTime, endDate)
             )
-        );
+        )
+        .groupBy(sql`EXTRACT(DAY FROM ${patrolHistory.checkInTime})`)
+        .orderBy(sql`EXTRACT(DAY FROM ${patrolHistory.checkInTime})`);
 
-    return months.map((monthStart) => {
-        const monthEnd = endOfMonth(monthStart);
-        const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    // Build complete days array with zeros for missing days
+    const daysInMonth = endDate.getDate();
+    const dataMap = new Map(result.map((r) => [r.day, Number(r.count)]));
 
-        let safeCount = 0;
-        let unsafeCount = 0;
+    return Array.from({ length: daysInMonth }, (_, i) => ({
+        label: String(i + 1),
+        value: dataMap.get(i + 1) || 0,
+        date: format(new Date(year, month - 1, i + 1), "yyyy-MM-dd"),
+    }));
+}
 
-        for (const day of daysInMonth) {
-            const dayStart = new Date(day);
-            dayStart.setHours(0, 0, 0, 0);
-            const dayEnd = new Date(day);
-            dayEnd.setHours(23, 59, 59, 999);
+// === OPTIMIZED: Weekly Stats using SQL GROUP BY ===
+export async function getWeeklyPatrolStats(year: number, month: number) {
+    const startDate = startOfMonth(new Date(year, month - 1));
+    const endDate = endOfMonth(new Date(year, month - 1));
+    const weeks = eachWeekOfInterval({ start: startDate, end: endDate }, { weekStartsOn: 1 });
 
-            for (const shift of allShifts) {
-                const shiftPatrols = patrols.filter((p) => {
-                    const checkDate = new Date(p.checkInTime);
-                    return (
-                        checkDate >= dayStart &&
-                        checkDate <= dayEnd &&
-                        p.shiftId === shift.id
-                    );
-                }).length;
+    const result = await db
+        .select({
+            week: sql<number>`EXTRACT(WEEK FROM ${patrolHistory.checkInTime})::int`.as("week"),
+            count: count(patrolHistory.id),
+        })
+        .from(patrolHistory)
+        .where(
+            and(
+                gte(patrolHistory.checkInTime, startDate),
+                lte(patrolHistory.checkInTime, endDate)
+            )
+        )
+        .groupBy(sql`EXTRACT(WEEK FROM ${patrolHistory.checkInTime})`)
+        .orderBy(sql`EXTRACT(WEEK FROM ${patrolHistory.checkInTime})`);
 
-                if (shiftPatrols >= requiredPatrolsPerShift) {
-                    safeCount++;
-                } else if (shiftPatrols > 0) {
-                    unsafeCount++;
-                }
-            }
-        }
+    const dataMap = new Map(result.map((r) => [r.week, Number(r.count)]));
+
+    return weeks.map((weekStart) => {
+        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+        const actualEnd = weekEnd > endDate ? endDate : weekEnd;
+        const actualStart = weekStart < startDate ? startDate : weekStart;
+        const weekNum = parseInt(format(weekStart, "w"));
 
         return {
+            label: `${format(actualStart, "d MMM", { locale: id })} - ${format(actualEnd, "d MMM", { locale: id })}`,
+            value: dataMap.get(weekNum) || 0,
+            date: format(weekStart, "yyyy-MM-dd"),
+        };
+    });
+}
+
+// === OPTIMIZED: Monthly Stats using SQL GROUP BY ===
+export async function getMonthlyPatrolStats(year: number) {
+    const startDate = startOfYear(new Date(year, 0));
+    const endDate = endOfYear(new Date(year, 0));
+
+    const result = await db
+        .select({
+            month: sql<number>`EXTRACT(MONTH FROM ${patrolHistory.checkInTime})::int`.as("month"),
+            count: count(patrolHistory.id),
+        })
+        .from(patrolHistory)
+        .where(
+            and(
+                gte(patrolHistory.checkInTime, startDate),
+                lte(patrolHistory.checkInTime, endDate)
+            )
+        )
+        .groupBy(sql`EXTRACT(MONTH FROM ${patrolHistory.checkInTime})`)
+        .orderBy(sql`EXTRACT(MONTH FROM ${patrolHistory.checkInTime})`);
+
+    const dataMap = new Map(result.map((r) => [r.month, Number(r.count)]));
+    const months = eachMonthOfInterval({ start: startDate, end: endDate });
+
+    return months.map((monthStart, idx) => ({
+        label: format(monthStart, "MMM", { locale: id }),
+        value: dataMap.get(idx + 1) || 0,
+        date: format(monthStart, "yyyy-MM"),
+    }));
+}
+
+// === OPTIMIZED: Safe/Unsafe Stats based on actual status field ===
+export async function getSafeUnsafeStats(year: number) {
+    const startDate = startOfYear(new Date(year, 0));
+    const endDate = endOfYear(new Date(year, 0));
+
+    // Count patrols by month and status directly from database
+    const result = await db
+        .select({
+            month: sql<number>`EXTRACT(MONTH FROM ${patrolHistory.checkInTime})::int`.as("month"),
+            status: patrolHistory.status,
+            count: count(patrolHistory.id),
+        })
+        .from(patrolHistory)
+        .where(
+            and(
+                gte(patrolHistory.checkInTime, startDate),
+                lte(patrolHistory.checkInTime, endDate)
+            )
+        )
+        .groupBy(
+            sql`EXTRACT(MONTH FROM ${patrolHistory.checkInTime})`,
+            patrolHistory.status
+        );
+
+    // Aggregate counts per month
+    const monthStats = new Map<number, { safe: number; unsafe: number }>();
+
+    for (const row of result) {
+        const month = row.month;
+        if (!monthStats.has(month)) {
+            monthStats.set(month, { safe: 0, unsafe: 0 });
+        }
+        const stats = monthStats.get(month)!;
+
+        if (row.status === "aman") {
+            stats.safe = Number(row.count);
+        } else if (row.status === "tidak_aman") {
+            stats.unsafe = Number(row.count);
+        }
+    }
+
+    const months = eachMonthOfInterval({ start: startDate, end: endDate });
+
+    return months.map((monthStart, idx) => {
+        const stats = monthStats.get(idx + 1) || { safe: 0, unsafe: 0 };
+        return {
             label: format(monthStart, "MMM", { locale: id }),
-            safe: safeCount,
-            unsafe: unsafeCount,
+            safe: stats.safe,
+            unsafe: stats.unsafe,
             date: format(monthStart, "yyyy-MM"),
         };
     });
 }
 
-// === Patrol Stats by User (with month/year filter) ===
+// === Patrol Stats by User (already optimized with GROUP BY) ===
 export async function getPatrolStatsByUserFiltered(year: number, month?: number) {
     const startDate = month
         ? startOfMonth(new Date(year, month - 1))
