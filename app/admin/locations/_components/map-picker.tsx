@@ -122,10 +122,17 @@ export default function MapPicker({
         center={center}
         zoom={16}
         scrollWheelZoom={true}
+        zoomControl={false}
+        attributionControl={false}
+        minZoom={5}
+        maxBounds={[
+          [-12, 94], // Southwest corner
+          [15, 142],  // Northeast corner
+        ]}
+        maxBoundsViscosity={1.0}
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
         <LocationMarker
