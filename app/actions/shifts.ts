@@ -1,7 +1,7 @@
 "use server";
 
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { patrolHistory, shifts } from "@/lib/schema";
@@ -28,13 +28,26 @@ async function requireAdmin(): Promise<{
   return { authorized: true };
 }
 
+// Cached version of shifts query - revalidates every 5 hours or on tag invalidation
+const getCachedShifts = unstable_cache(
+  async () => {
+    return await db.select().from(shifts);
+  },
+  ["shifts-data"],
+  {
+    revalidate: 18000, // 5 hours
+    tags: ["shifts"],
+  }
+);
+
 export async function getShifts() {
   // This can be accessed by logged-in users (satpam needs it for patrol)
   const session = await auth();
   if (!session?.user) {
     throw new Error("Unauthorized: Please login first");
   }
-  return await db.select().from(shifts);
+  // Use cached version
+  return await getCachedShifts();
 }
 
 export async function createShift(formData: FormData) {
@@ -59,6 +72,8 @@ export async function createShift(formData: FormData) {
       endTime: endTime,
     });
 
+    // Invalidate shifts cache
+    revalidateTag("shifts", "max");
     revalidatePath("/admin/shifts");
     return { success: true };
   } catch (error) {
@@ -81,6 +96,9 @@ export async function deleteShift(id: number) {
       // Then delete the shift
       await tx.delete(shifts).where(eq(shifts.id, id));
     });
+
+    // Invalidate shifts cache
+    revalidateTag("shifts", "max");
     revalidatePath("/admin/shifts");
     return { success: true };
   } catch (error) {
@@ -88,3 +106,4 @@ export async function deleteShift(id: number) {
     return { error: "Gagal menghapus shift" };
   }
 }
+

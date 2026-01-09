@@ -1,7 +1,7 @@
 "use server";
 
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { locations, patrolHistory } from "@/lib/schema";
@@ -28,13 +28,26 @@ async function requireAdmin(): Promise<{
   return { authorized: true };
 }
 
+// Cached version of locations query - revalidates every 5 hours or on tag invalidation
+const getCachedLocations = unstable_cache(
+  async () => {
+    return await db.select().from(locations).orderBy(locations.order);
+  },
+  ["locations-data"],
+  {
+    revalidate: 18000, // 5 hours
+    tags: ["locations"],
+  }
+);
+
 export async function getLocations() {
   // This can be accessed by logged-in users (satpam needs it for patrol)
   const session = await auth();
   if (!session?.user) {
     throw new Error("Unauthorized: Please login first");
   }
-  return await db.select().from(locations).orderBy(locations.order);
+  // Use cached version
+  return await getCachedLocations();
 }
 
 export async function createLocation(formData: FormData) {
@@ -66,6 +79,8 @@ export async function createLocation(formData: FormData) {
     order,
   });
 
+  // Invalidate locations cache
+  revalidateTag("locations", "max");
   revalidatePath("/admin/locations");
   return { success: true };
 }
@@ -84,6 +99,9 @@ export async function deleteLocation(id: number) {
       // Then delete the location
       await tx.delete(locations).where(eq(locations.id, id));
     });
+
+    // Invalidate locations cache
+    revalidateTag("locations", "max");
     revalidatePath("/admin/locations");
     return { success: true };
   } catch (error) {
@@ -125,6 +143,9 @@ export async function updateLocation(id: number, formData: FormData) {
     })
     .where(eq(locations.id, id));
 
+  // Invalidate locations cache
+  revalidateTag("locations", "max");
   revalidatePath("/admin/locations");
   return { success: true };
 }
+
