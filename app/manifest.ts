@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: "Patroli Satpam",
-        short_name: "Patroli",
+        name: "SAPA - Satpam Patroli",
+        short_name: "SAPA",
         description: "Sistem Monitoring Patroli Satpam",
         start_url: "/",
         display: "standalone",
