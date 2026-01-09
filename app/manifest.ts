@@ -5,6 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
         name: "SAPA - Satpam Patroli",
         short_name: "SAPA",
         description: "Sistem Monitoring Patroli Satpam",
+        "display": "standalone",
         start_url: "/",
         display: "standalone",
         background_color: "#ffffff",
