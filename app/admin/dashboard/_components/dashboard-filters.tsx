@@ -1,6 +1,6 @@
 "use client";
 
-import { FileSpreadsheet, FileText } from "lucide-react";
+import { FileSpreadsheet, FileText, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface DashboardFiltersProps {
@@ -11,7 +11,9 @@ interface DashboardFiltersProps {
   onYearChange: (year: number) => void;
   onExportExcel: () => void;
   onExportPdf: () => void;
+  onRefresh: () => void;
   isExporting?: boolean;
+  isPending?: boolean;
 }
 
 const months = [
@@ -37,7 +39,9 @@ export function DashboardFilters({
   onYearChange,
   onExportExcel,
   onExportPdf,
+  onRefresh,
   isExporting = false,
+  isPending = false,
 }: DashboardFiltersProps) {
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
@@ -80,8 +84,19 @@ export function DashboardFilters({
           </div>
         </div>
 
-        {/* Export Buttons */}
+        {/* Export & Refresh Buttons */}
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            disabled={isPending}
+            className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+            title="Perbarui data"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isPending ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
           <Button
             variant="outline"
             size="sm"

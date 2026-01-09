@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { count } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { History, MapPin, Users } from "lucide-react";
 import { db } from "@/lib/db";
 import { locations, patrolHistory, users } from "@/lib/schema";
@@ -11,7 +11,8 @@ async function getStats() {
   // Run all count queries in parallel for better performance
   const [[locationCount], [userCount], [patrolCount]] = await Promise.all([
     db.select({ value: count() }).from(locations),
-    db.select({ value: count() }).from(users),
+    // Only count active users
+    db.select({ value: count() }).from(users).where(eq(users.isActive, true)),
     db.select({ value: count() }).from(patrolHistory),
   ]);
 

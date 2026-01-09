@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { deletePatrolLog, updatePatrolLog } from "@/app/actions/history";
 import {
@@ -177,8 +177,8 @@ export function PatrolHistoryTable({
     }
   };
 
-  // Group by date -> shift -> round
-  const groupedData = (): ShiftGroup[] => {
+  // Group by date -> shift -> round (Memoized to prevent re-calculation on every render)
+  const shiftGroups = useMemo((): ShiftGroup[] => {
     const groups: Record<string, ShiftGroup> = {};
 
     for (const log of history) {
@@ -261,9 +261,7 @@ export function PatrolHistoryTable({
       if (dateCompare !== 0) return dateCompare;
       return a.shiftName.localeCompare(b.shiftName);
     });
-  };
-
-  const shiftGroups = groupedData();
+  }, [history, shifts, locations]);
 
   const toggleShift = (key: string) => {
     setExpandedShift(expandedShift === key ? null : key);
@@ -700,11 +698,10 @@ export function PatrolHistoryTable({
                       params.set("page", pageNum.toString());
                       router.push(`?${params.toString()}`);
                     }}
-                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
-                      currentPage === pageNum
-                        ? "z-10 bg-blue-600 text-white"
-                        : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                    }`}
+                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${currentPage === pageNum
+                      ? "z-10 bg-blue-600 text-white"
+                      : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                      }`}
                   >
                     {pageNum}
                   </button>
@@ -742,7 +739,7 @@ export function PatrolHistoryTable({
           <div
             className="relative max-w-4xl w-full"
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={() => {}}
+            onKeyDown={() => { }}
             role="dialog"
             tabIndex={-1}
           >

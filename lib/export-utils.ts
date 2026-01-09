@@ -2,9 +2,6 @@
 
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
 
 interface ExportRow {
   id: number;
@@ -16,7 +13,10 @@ interface ExportRow {
   putaran: number;
 }
 
-export function exportToExcel(data: ExportRow[], filename: string) {
+export async function exportToExcel(data: ExportRow[], filename: string) {
+  // Dynamic import - only loads when function is called
+  const XLSX = await import("xlsx");
+
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
 
@@ -35,11 +35,16 @@ export function exportToExcel(data: ExportRow[], filename: string) {
   XLSX.writeFile(workbook, `${filename}.xlsx`);
 }
 
-export function exportToPdf(
+export async function exportToPdf(
   data: ExportRow[],
   filename: string,
   dateRange: { start: string; end: string },
 ) {
+  // Dynamic imports - only loads when function is called
+  const { jsPDF } = await import("jspdf");
+  const autoTableModule = await import("jspdf-autotable");
+  const autoTable = autoTableModule.default;
+
   const doc = new jsPDF();
 
   // Header
@@ -104,3 +109,4 @@ export function exportToPdf(
 
   doc.save(`${filename}.pdf`);
 }
+

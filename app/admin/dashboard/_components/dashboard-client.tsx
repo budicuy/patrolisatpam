@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import toast from "react-hot-toast";
 import {
   getAllDashboardData,
@@ -27,6 +27,19 @@ interface SafeUnsafePoint {
   date: string;
 }
 
+// Cache structure with timestamp for expiration
+interface CachedData {
+  daily: ChartDataPoint[];
+  weekly: ChartDataPoint[];
+  monthly: ChartDataPoint[];
+  safeUnsafe: SafeUnsafePoint[];
+  userStats: { name: string; patrols: number }[];
+  timestamp: number; // When the data was cached
+}
+
+// Cache expiration time: 5 minutes
+const CACHE_EXPIRATION_MS = 5 * 60 * 1000;
+
 export function DashboardClient() {
   const today = new Date();
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
@@ -46,6 +59,12 @@ export function DashboardClient() {
     { name: string; patrols: number }[]
   >([]);
 
+  // Client-side cache with expiration
+  const dataCache = useRef<Map<string, CachedData>>(new Map());
+
+  // Force refresh trigger
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
   // Fetch available years on mount
   useEffect(() => {
     getAvailableYears().then((years) => {
@@ -56,17 +75,62 @@ export function DashboardClient() {
     });
   }, []);
 
-  // Fetch all data on filter change - SINGLE COMBINED CALL
-  useEffect(() => {
+  // Function to fetch data (used by effect and manual refresh)
+  const fetchData = (forceRefresh = false) => {
+    const cacheKey = `${selectedYear}-${selectedMonth}`;
+    const now = Date.now();
+
+    // Check if data is cached and not expired
+    const cachedData = dataCache.current.get(cacheKey);
+    const isExpired = cachedData && (now - cachedData.timestamp > CACHE_EXPIRATION_MS);
+
+    if (cachedData && !isExpired && !forceRefresh) {
+      // Use cached data immediately
+      setDailyData(cachedData.daily);
+      setWeeklyData(cachedData.weekly);
+      setMonthlyData(cachedData.monthly);
+      setSafeUnsafeData(cachedData.safeUnsafe);
+      setUserStats(cachedData.userStats);
+      return;
+    }
+
+    // Fetch fresh data
     startTransition(async () => {
       const data = await getAllDashboardData(selectedYear, selectedMonth);
+
+      // Cache the fetched data with timestamp
+      dataCache.current.set(cacheKey, {
+        daily: data.daily,
+        weekly: data.weekly,
+        monthly: data.monthly,
+        safeUnsafe: data.safeUnsafe,
+        userStats: data.userStats,
+        timestamp: Date.now(),
+      });
+
       setDailyData(data.daily);
       setWeeklyData(data.weekly);
       setMonthlyData(data.monthly);
       setSafeUnsafeData(data.safeUnsafe);
       setUserStats(data.userStats);
     });
-  }, [selectedMonth, selectedYear]);
+  };
+
+  // Fetch all data on filter change - WITH CACHING & EXPIRATION
+  useEffect(() => {
+    fetchData(refreshTrigger > 0);
+  }, [selectedMonth, selectedYear, refreshTrigger]);
+
+  // Force refresh handler - clears cache and fetches fresh data
+  const handleRefreshData = () => {
+    // Clear cache for current selection
+    const cacheKey = `${selectedYear}-${selectedMonth}`;
+    dataCache.current.delete(cacheKey);
+
+    // Trigger re-fetch
+    setRefreshTrigger((prev) => prev + 1);
+    toast.success("Data diperbarui!");
+  };
 
   const handleExportExcel = async () => {
     setIsExporting(true);
@@ -119,7 +183,9 @@ export function DashboardClient() {
         onYearChange={setSelectedYear}
         onExportExcel={handleExportExcel}
         onExportPdf={handleExportPdf}
+        onRefresh={handleRefreshData}
         isExporting={isExporting}
+        isPending={isPending}
       />
 
       {/* 4-Chart Grid */}
