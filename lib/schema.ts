@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import {
   boolean,
   doublePrecision,
+  index,
   integer,
   pgTable,
   serial,
@@ -40,25 +41,36 @@ export const shifts = pgTable("shifts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const patrolHistory = pgTable("patrol_history", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id")
-    .references(() => users.id)
-    .notNull(),
-  shiftId: integer("shift_id")
-    .references(() => shifts.id)
-    .notNull(),
-  locationId: integer("location_id")
-    .references(() => locations.id)
-    .notNull(),
-  roundNumber: integer("round_number").default(1).notNull(), // Patrol round (1-5)
-  checkInTime: timestamp("check_in_time").defaultNow().notNull(),
-  status: text("status", { enum: ["aman", "tidak_aman"] })
-    .default("aman")
-    .notNull(),
-  notes: text("notes"),
-  imageData: text("image_data"), // Vercel Blob URL
-});
+export const patrolHistory = pgTable(
+  "patrol_history",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .references(() => users.id)
+      .notNull(),
+    shiftId: integer("shift_id")
+      .references(() => shifts.id)
+      .notNull(),
+    locationId: integer("location_id")
+      .references(() => locations.id)
+      .notNull(),
+    roundNumber: integer("round_number").default(1).notNull(), // Patrol round (1-5)
+    checkInTime: timestamp("check_in_time").defaultNow().notNull(),
+    status: text("status", { enum: ["aman", "tidak_aman"] })
+      .default("aman")
+      .notNull(),
+    notes: text("notes"),
+    imageData: text("image_data"), // Vercel Blob URL
+  },
+  (table) => ({
+    // Indexes for frequently queried columns
+    shiftIdIdx: index("patrol_history_shift_id_idx").on(table.shiftId),
+    checkInTimeIdx: index("patrol_history_check_in_time_idx").on(table.checkInTime),
+    userIdIdx: index("patrol_history_user_id_idx").on(table.userId),
+    // Composite index for common query patterns
+    shiftTimeIdx: index("patrol_history_shift_time_idx").on(table.shiftId, table.checkInTime),
+  }),
+);
 
 export const usersRelations = relations(users, ({ many }) => ({
   patrolLogs: many(patrolHistory),

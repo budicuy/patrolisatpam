@@ -8,9 +8,12 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
 async function getStats() {
-  const [locationCount] = await db.select({ value: count() }).from(locations);
-  const [userCount] = await db.select({ value: count() }).from(users);
-  const [patrolCount] = await db.select({ value: count() }).from(patrolHistory);
+  // Run all count queries in parallel for better performance
+  const [[locationCount], [userCount], [patrolCount]] = await Promise.all([
+    db.select({ value: count() }).from(locations),
+    db.select({ value: count() }).from(users),
+    db.select({ value: count() }).from(patrolHistory),
+  ]);
 
   return {
     locations: locationCount.value,

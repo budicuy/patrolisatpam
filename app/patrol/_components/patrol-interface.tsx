@@ -238,6 +238,15 @@ export default function PatrolInterface({
   );
   const [isCompressing, setIsCompressing] = useState(false);
 
+  // Cleanup object URL to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (checkInImagePreview) {
+        URL.revokeObjectURL(checkInImagePreview);
+      }
+    };
+  }, [checkInImagePreview]);
+
   // Initial Logic: Find first unvisited location based on order
   useEffect(() => {
     if (locations.length > 0) {
@@ -386,7 +395,6 @@ export default function PatrolInterface({
     setIsPatrolling(false);
     setPatrolStartTime(null);
     setPatrolEndTime(null);
-    setVisitedLocations([]);
     setVisitedLocations([]);
     setSelectedShift(null);
     router.refresh();
