@@ -82,24 +82,26 @@ export async function getPatrolProgress(shiftId: number) {
       endTime: shift.endTime,
     });
 
-    // Get total locations
-    const allLocations = await db.select({ id: locations.id }).from(locations);
-    const totalLocations = allLocations.length;
-
-    // Get all logs for this shift window
-    const logs = await db
-      .select({
-        locationId: patrolHistory.locationId,
-        roundNumber: patrolHistory.roundNumber,
-      })
-      .from(patrolHistory)
-      .where(
-        and(
-          eq(patrolHistory.shiftId, shiftId),
-          gte(patrolHistory.checkInTime, start),
-          lte(patrolHistory.checkInTime, end),
+    // Run both queries in parallel for better performance
+    const [allLocations, logs] = await Promise.all([
+      // Get total locations
+      db.select({ id: locations.id }).from(locations),
+      // Get all logs for this shift window
+      db
+        .select({
+          locationId: patrolHistory.locationId,
+          roundNumber: patrolHistory.roundNumber,
+        })
+        .from(patrolHistory)
+        .where(
+          and(
+            eq(patrolHistory.shiftId, shiftId),
+            gte(patrolHistory.checkInTime, start),
+            lte(patrolHistory.checkInTime, end),
+          ),
         ),
-      );
+    ]);
+    const totalLocations = allLocations.length;
 
     // Group by round
     const roundsData: Record<number, Set<number>> = {};

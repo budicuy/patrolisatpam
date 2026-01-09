@@ -1,7 +1,7 @@
 "use server";
 
 import { hash } from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { users } from "@/lib/schema";
@@ -75,21 +75,19 @@ export async function deleteUser(id: number) {
 
 export async function toggleUserActive(id: number) {
   try {
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, id),
-    });
+    // Single query: UPDATE with NOT operator and RETURNING
+    const result = await db
+      .update(users)
+      .set({ isActive: sql`NOT ${users.isActive}` })
+      .where(eq(users.id, id))
+      .returning({ isActive: users.isActive });
 
-    if (!user) {
+    if (result.length === 0) {
       return { error: "User tidak ditemukan" };
     }
 
-    await db
-      .update(users)
-      .set({ isActive: !user.isActive })
-      .where(eq(users.id, id));
-
     revalidatePath("/admin/users");
-    return { success: true, isActive: !user.isActive };
+    return { success: true, isActive: result[0].isActive };
   } catch (error) {
     console.error("Toggle user active error:", error);
     return { error: "Gagal mengubah status user" };

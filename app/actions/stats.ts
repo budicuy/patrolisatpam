@@ -40,40 +40,41 @@ export async function getUnpatrolledLocations(dateString: string) {
   const endOfDayUTC = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
   endOfDayUTC.setUTCHours(endOfDayUTC.getUTCHours() - TIMEZONE_OFFSET_HOURS);
 
-  // Get all locations
-  const allLocations = await db
-    .select({
-      id: locations.id,
-      name: locations.name,
-      order: locations.order,
-    })
-    .from(locations)
-    .orderBy(locations.order);
-
-  // Get all shifts
-  const allShifts = await db
-    .select({
-      id: shifts.id,
-      name: shifts.name,
-      startTime: shifts.startTime,
-      endTime: shifts.endTime,
-    })
-    .from(shifts);
-
-  // Get all patrol logs for this date with their shift and round info
-  const patrolLogs = await db
-    .select({
-      locationId: patrolHistory.locationId,
-      shiftId: patrolHistory.shiftId,
-      roundNumber: patrolHistory.roundNumber,
-    })
-    .from(patrolHistory)
-    .where(
-      and(
-        gte(patrolHistory.checkInTime, startOfDayUTC),
-        lt(patrolHistory.checkInTime, endOfDayUTC),
+  // Run all queries in parallel for better performance
+  const [allLocations, allShifts, patrolLogs] = await Promise.all([
+    // Get all locations
+    db
+      .select({
+        id: locations.id,
+        name: locations.name,
+        order: locations.order,
+      })
+      .from(locations)
+      .orderBy(locations.order),
+    // Get all shifts
+    db
+      .select({
+        id: shifts.id,
+        name: shifts.name,
+        startTime: shifts.startTime,
+        endTime: shifts.endTime,
+      })
+      .from(shifts),
+    // Get all patrol logs for this date with their shift and round info
+    db
+      .select({
+        locationId: patrolHistory.locationId,
+        shiftId: patrolHistory.shiftId,
+        roundNumber: patrolHistory.roundNumber,
+      })
+      .from(patrolHistory)
+      .where(
+        and(
+          gte(patrolHistory.checkInTime, startOfDayUTC),
+          lt(patrolHistory.checkInTime, endOfDayUTC),
+        ),
       ),
-    );
+  ]);
 
   // Group patrolled locations by shift and round
   // Structure: { shiftId: { roundNumber: Set<locationId> } }

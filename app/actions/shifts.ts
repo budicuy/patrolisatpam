@@ -35,9 +35,12 @@ export async function createShift(formData: FormData) {
 
 export async function deleteShift(id: number) {
   try {
-    // Delete associated patrol history first
-    await db.delete(patrolHistory).where(eq(patrolHistory.shiftId, id));
-    await db.delete(shifts).where(eq(shifts.id, id));
+    await db.transaction(async (tx) => {
+      // Delete associated patrol history first
+      await tx.delete(patrolHistory).where(eq(patrolHistory.shiftId, id));
+      // Then delete the shift
+      await tx.delete(shifts).where(eq(shifts.id, id));
+    });
     revalidatePath("/admin/shifts");
     return { success: true };
   } catch (error) {
