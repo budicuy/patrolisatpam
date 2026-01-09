@@ -26,8 +26,10 @@ interface Location {
 
 export default function LocationList({
   initialLocations,
+  currentUserRole,
 }: {
   initialLocations: Location[];
+  currentUserRole: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -76,15 +78,17 @@ export default function LocationList({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setDeletingId(loc.id)}
-                disabled={isPending}
-                className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors self-end sm:self-center"
-                title="Hapus Lokasi"
-              >
-                <Trash2 className="h-5 w-5" />
-              </button>
+              {currentUserRole !== "hr" && (
+                <button
+                  type="button"
+                  onClick={() => setDeletingId(loc.id)}
+                  disabled={isPending}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors self-end sm:self-center"
+                  title="Hapus Lokasi"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              )}
             </div>
           ))
         )}

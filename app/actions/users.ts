@@ -72,3 +72,26 @@ export async function deleteUser(id: number) {
     };
   }
 }
+
+export async function toggleUserActive(id: number) {
+  try {
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, id),
+    });
+
+    if (!user) {
+      return { error: "User tidak ditemukan" };
+    }
+
+    await db
+      .update(users)
+      .set({ isActive: !user.isActive })
+      .where(eq(users.id, id));
+
+    revalidatePath("/admin/users");
+    return { success: true, isActive: !user.isActive };
+  } catch (error) {
+    console.error("Toggle user active error:", error);
+    return { error: "Gagal mengubah status user" };
+  }
+}

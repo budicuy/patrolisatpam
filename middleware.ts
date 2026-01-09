@@ -26,12 +26,12 @@ export default auth((req) => {
     }
 
     // Role-based access control
-    if (isOnAdmin && role !== "admin") {
+    if (isOnAdmin && role !== "admin" && role !== "hr") {
       // Satpam trying to access admin routes -> redirect to patrol
       return NextResponse.redirect(new URL("/patrol", req.nextUrl));
     }
 
-    if (isOnPatrol && role === "admin") {
+    if (isOnPatrol && (role === "admin" || role === "hr")) {
       // Admin trying to access patrol routes -> redirect to admin dashboard
       return NextResponse.redirect(new URL("/admin/dashboard", req.nextUrl));
     }
@@ -41,7 +41,7 @@ export default auth((req) => {
 
   // If on login page and already logged in -> redirect based on role
   if (isOnLogin && isLoggedIn) {
-    if (role === "admin") {
+    if (role === "admin" || role === "hr") {
       return NextResponse.redirect(new URL("/admin/dashboard", req.nextUrl));
     }
     return NextResponse.redirect(new URL("/patrol", req.nextUrl));

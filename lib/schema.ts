@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  boolean,
   doublePrecision,
   integer,
   pgTable,
@@ -14,9 +15,10 @@ export const users = pgTable("users", {
   username: text("username").unique().notNull(),
   name: text("name").notNull(),
   password: text("password").notNull(),
-  role: text("role", { enum: ["admin", "satpam"] })
+  role: text("role", { enum: ["admin", "satpam", "hr"] })
     .default("satpam")
     .notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

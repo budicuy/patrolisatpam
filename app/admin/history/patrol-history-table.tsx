@@ -2,7 +2,20 @@
 
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Edit, Eye, Trash2, X } from "lucide-react";
+import {
+  Calendar,
+  CheckCircle,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Clock,
+  Edit,
+  Eye,
+  MapPin,
+  Trash2,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -35,6 +48,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 type PatrolLog = {
   id: number;
@@ -47,6 +61,7 @@ type PatrolLog = {
   status: "aman" | "tidak_aman" | null;
   notes: string | null;
   imageData: string | null;
+  roundNumber: number;
 };
 
 type Shift = {
@@ -56,19 +71,38 @@ type Shift = {
   endTime: string;
 };
 
+type Location = {
+  id: number;
+  name: string;
+  order: number;
+};
+
 type Props = {
   history: PatrolLog[];
   currentPage: number;
   totalPages: number;
   shifts: Shift[];
+  locations: Location[];
+};
+
+type RoundData = {
+  roundNumber: number;
+  logs: PatrolLog[];
+  unpatrolledLocations: Location[];
+  isComplete: boolean;
+  patrolledCount: number;
+  totalLocations: number;
 };
 
 type ShiftGroup = {
   shiftId: number;
   shiftName: string;
+  shiftStartTime: string;
+  shiftEndTime: string;
   date: string;
   dateFormatted: string;
-  logs: PatrolLog[];
+  rounds: RoundData[];
+  completedRounds: number;
 };
 
 export function PatrolHistoryTable({
@@ -76,6 +110,7 @@ export function PatrolHistoryTable({
   currentPage,
   totalPages,
   shifts,
+  locations,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -86,6 +121,9 @@ export function PatrolHistoryTable({
     status: "aman" | "tidak_aman";
     notes: string;
   } | null>(null);
+
+  const [expandedShift, setExpandedShift] = useState<string | null>(null);
+  const [expandedRound, setExpandedRound] = useState<string | null>(null);
 
   // Filters State
   const filterDate = searchParams.get("date") || "";
@@ -98,19 +136,13 @@ export function PatrolHistoryTable({
     } else {
       params.delete(key);
     }
-    params.set("page", "1"); // Reset params to page 1
+    params.set("page", "1");
     router.push(`?${params.toString()}`);
   };
 
   const resetFilters = () => {
     router.push("?");
   };
-
-  const handleDeleteClick = (logId: number) => {
-    setDeletingLogId(logId);
-  };
-
-  // existing code...
 
   const executeDelete = async () => {
     if (!deletingLogId) return;
@@ -145,8 +177,8 @@ export function PatrolHistoryTable({
     }
   };
 
-  // Group by date then shift
-  const groupedByDateAndShift = (): ShiftGroup[] => {
+  // Group by date -> shift -> round
+  const groupedData = (): ShiftGroup[] => {
     const groups: Record<string, ShiftGroup> = {};
 
     for (const log of history) {
@@ -156,33 +188,66 @@ export function PatrolHistoryTable({
       const key = `${dateKey}-${log.shiftId}`;
 
       if (!groups[key]) {
+        const shift = shifts.find((s) => s.id === log.shiftId);
         groups[key] = {
           shiftId: log.shiftId,
           shiftName: log.shiftName || "Unknown Shift",
+          shiftStartTime: shift?.startTime || "",
+          shiftEndTime: shift?.endTime || "",
           date: dateKey,
-          dateFormatted: format(
-            new Date(log.checkInTime),
-            "EEEE, d MMMM yyyy",
-            {
-              locale: id,
-            },
-          ),
-          logs: [],
+          dateFormatted: format(new Date(log.checkInTime), "EEEE, d MMMM yyyy", {
+            locale: id,
+          }),
+          rounds: [],
+          completedRounds: 0,
         };
+
+        // Initialize 5 rounds with location tracking
+        for (let i = 1; i <= 5; i++) {
+          groups[key].rounds.push({
+            roundNumber: i,
+            logs: [],
+            unpatrolledLocations: [...locations].sort((a, b) => a.order - b.order),
+            isComplete: false,
+            patrolledCount: 0,
+            totalLocations: locations.length,
+          });
+        }
       }
 
-      groups[key].logs.push(log);
+      // Add log to appropriate round
+      const roundIndex = (log.roundNumber || 1) - 1;
+      if (roundIndex >= 0 && roundIndex < 5) {
+        groups[key].rounds[roundIndex].logs.push(log);
+      }
     }
 
-    // Sort logs within each group by time (newest first)
+    // Calculate completed rounds and unpatrolled locations
     for (const key in groups) {
-      groups[key].logs.sort(
-        (a, b) =>
-          new Date(b.checkInTime).getTime() - new Date(a.checkInTime).getTime(),
-      );
+      for (const round of groups[key].rounds) {
+        // Get patrolled location names
+        const patrolledLocationNames = new Set(
+          round.logs.map((l) => l.locationName)
+        );
+
+        // Filter out patrolled locations
+        round.unpatrolledLocations = locations
+          .filter((loc) => !patrolledLocationNames.has(loc.name))
+          .sort((a, b) => a.order - b.order);
+
+        round.patrolledCount = patrolledLocationNames.size;
+        round.isComplete = round.unpatrolledLocations.length === 0 && round.logs.length > 0;
+
+        round.logs.sort(
+          (a, b) =>
+            new Date(b.checkInTime).getTime() - new Date(a.checkInTime).getTime()
+        );
+      }
+      groups[key].completedRounds = groups[key].rounds.filter(
+        (r) => r.isComplete
+      ).length;
     }
 
-    // Sort groups by date (newest first) then by shift name
     return Object.values(groups).sort((a, b) => {
       const dateCompare = b.date.localeCompare(a.date);
       if (dateCompare !== 0) return dateCompare;
@@ -190,23 +255,35 @@ export function PatrolHistoryTable({
     });
   };
 
-  const shiftGroups = groupedByDateAndShift();
+  const shiftGroups = groupedData();
+
+  const toggleShift = (key: string) => {
+    setExpandedShift(expandedShift === key ? null : key);
+  };
+
+  const toggleRound = (key: string) => {
+    setExpandedRound(expandedRound === key ? null : key);
+  };
 
   return (
     <>
-      <div className="space-y-4 mb-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+      {/* Filters */}
+      <div className="space-y-4 mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div className="flex flex-col sm:flex-row gap-4 items-end">
           <div className="w-full sm:w-auto">
             <Label htmlFor="date-filter" className="mb-2 block text-xs">
               Filter Tanggal
             </Label>
-            <Input
-              type="date"
-              id="date-filter"
-              className="w-full sm:w-[200px]"
-              value={filterDate}
-              onChange={(e) => handleFilterChange("date", e.target.value)}
-            />
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+              <Input
+                type="date"
+                id="date-filter"
+                className="pl-9 w-full sm:w-[180px]"
+                value={filterDate}
+                onChange={(e) => handleFilterChange("date", e.target.value)}
+              />
+            </div>
           </div>
           <div className="w-full sm:w-auto">
             <Label htmlFor="shift-filter" className="mb-2 block text-xs">
@@ -218,14 +295,14 @@ export function PatrolHistoryTable({
                 handleFilterChange("shiftId", val === "all" ? "" : val)
               }
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Semua Shift" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Shift</SelectItem>
                 {shifts.map((shift) => (
                   <SelectItem key={shift.id} value={shift.id.toString()}>
-                    {shift.name} ({shift.startTime} - {shift.endTime})
+                    {shift.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -237,7 +314,7 @@ export function PatrolHistoryTable({
               size="icon"
               onClick={resetFilters}
               title="Reset Filter"
-              className="shrink-0 mb-[2px]"
+              className="shrink-0"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -245,175 +322,283 @@ export function PatrolHistoryTable({
         </div>
       </div>
 
-      <div className="space-y-8">
+      {/* Shift Cards */}
+      <div className="space-y-4">
         {shiftGroups.length === 0 ? (
-          <div className="rounded-xl bg-white shadow-md p-8 text-center">
+          <div className="rounded-xl bg-white shadow-sm border border-gray-100 p-12 text-center">
             <p className="text-gray-500">Belum ada data riwayat patroli.</p>
           </div>
         ) : (
-          shiftGroups.map((group) => (
-            <div
-              key={`${group.date}-${group.shiftId}`}
-              className="rounded-xl bg-white shadow-md overflow-hidden"
-            >
-              {/* Shift Header */}
-              <div className="bg-linear-to-r from-blue-600 to-blue-700 px-6 py-4">
-                <h2 className="text-lg font-bold text-white">
-                  {group.shiftName} : {group.dateFormatted}
-                </h2>
-              </div>
+          shiftGroups.map((group) => {
+            const shiftKey = `${group.date}-${group.shiftId}`;
+            const isShiftExpanded = expandedShift === shiftKey;
 
-              {/* Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 py-3 font-semibold text-gray-700 w-12 text-center text-nowrap">
-                        No
-                      </th>
-                      <th className="px-4 py-3 font-semibold text-gray-700 text-nowrap">
-                        Control Location
-                      </th>
-                      <th className="px-4 py-3 font-semibold text-gray-700 text-nowrap text-center">
-                        Tanggal
-                      </th>
-                      <th className="px-4 py-3 font-semibold text-gray-700 text-nowrap text-center">
-                        Waktu
-                      </th>
-                      <th className="px-4 py-3 font-semibold text-gray-700 text-nowrap text-center">
-                        Nama Petugas
-                      </th>
-                      <th className="px-4 py-3 font-semibold text-gray-700 text-nowrap">
-                        Kondisi
-                      </th>
-                      <th className="px-4 py-3 font-semibold text-gray-700 text-center text-nowrap">
-                        Gambar
-                      </th>
-                      <th className="px-4 py-3 font-semibold text-gray-700 text-center text-nowrap">
-                        Aksi
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {group.logs.length === 0 ? (
-                      <tr>
-                        <td className="px-4 py-4 text-center text-gray-400">
-                          -
-                        </td>
-                        <td className="px-4 py-4 text-center text-gray-400">
-                          -
-                        </td>
-                        <td className="px-4 py-4 text-center text-gray-400">
-                          -
-                        </td>
-                        <td className="px-4 py-4 text-center text-gray-400">
-                          -
-                        </td>
-                        <td className="px-4 py-4 text-center text-gray-400">
-                          -
-                        </td>
-                        <td className="px-4 py-4 text-center text-gray-400">
-                          -
-                        </td>
-                        <td className="px-4 py-4 text-center text-gray-400">
-                          -
-                        </td>
-                        <td className="px-4 py-4 text-center text-gray-400">
-                          -
-                        </td>
-                      </tr>
+            return (
+              <div
+                key={shiftKey}
+                className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+              >
+                {/* Shift Header */}
+                <button
+                  type="button"
+                  className={cn(
+                    "w-full p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors",
+                    isShiftExpanded && "bg-gray-50"
+                  )}
+                  onClick={() => toggleShift(shiftKey)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={cn(
+                        "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
+                        group.completedRounds === 5
+                          ? "bg-green-100 text-green-600"
+                          : "bg-blue-100 text-blue-600"
+                      )}
+                    >
+                      <Clock className="h-5 w-5" />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="font-bold text-gray-900">
+                        {group.shiftName}
+                      </h4>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span className="font-medium bg-gray-100 px-2 py-0.5 rounded">
+                          {group.shiftStartTime} - {group.shiftEndTime}
+                        </span>
+                        <span>•</span>
+                        <span>{group.dateFormatted}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <span
+                        className={cn(
+                          "text-xl font-bold",
+                          group.completedRounds === 5
+                            ? "text-green-600"
+                            : "text-blue-600"
+                        )}
+                      >
+                        {group.completedRounds}
+                      </span>
+                      <span className="text-sm text-gray-400 font-medium">
+                        /5
+                      </span>
+                      <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">
+                        Putaran
+                      </p>
+                    </div>
+                    {isShiftExpanded ? (
+                      <ChevronUp className="h-5 w-5 text-gray-400" />
                     ) : (
-                      group.logs.map((log, index) => (
-                        <tr
-                          key={log.id}
-                          className={`hover:bg-gray-50 transition-colors text-nowrap ${
-                            log.status === "tidak_aman" ? "bg-red-50" : ""
-                          }`}
-                        >
-                          <td className="px-4 py-3 text-center text-gray-500 font-medium">
-                            {index + 1}
-                          </td>
-                          <td className="px-4 py-3 font-medium text-gray-900">
-                            {log.locationName || "-"}
-                          </td>
-                          <td className="px-4 py-3 text-gray-600 text-center">
-                            {format(new Date(log.checkInTime), "dd/MM/yyyy")}
-                          </td>
-                          <td className="px-4 py-3 text-gray-600 font-mono text-center">
-                            {format(new Date(log.checkInTime), "HH:mm")}
-                          </td>
-                          <td className="px-4 py-3 text-gray-900 text-center">
-                            {log.userName || "-"}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
-                                log.status === "tidak_aman"
-                                  ? "bg-red-100 text-red-700"
-                                  : "bg-green-100 text-green-700"
-                              }`}
-                            >
-                              {log.status === "tidak_aman" ? "Unsafe" : "Safe"}
-                            </span>
-                            {log.status === "tidak_aman" && log.notes && (
-                              <p className="mt-1 text-xs text-red-600 max-w-[200px] truncate">
-                                {log.notes}
-                              </p>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            {log.imageData ? (
-                              <button
-                                type="button"
-                                onClick={() => setSelectedImage(log.imageData)}
-                                className="inline-flex items-center justify-center p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
-                                title="Lihat Gambar"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center justify-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setEditingLog({
-                                    id: log.id,
-                                    status: log.status || "aman",
-                                    notes: log.notes || "",
-                                  })
-                                }
-                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                                title="Edit"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteClick(log.id)}
-                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                                title="Hapus"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
+                      <ChevronDown className="h-5 w-5 text-gray-400" />
                     )}
-                  </tbody>
-                </table>
+                  </div>
+                </button>
+
+                {/* Progress Bar */}
+                <div className="h-1 w-full bg-gray-100">
+                  <div
+                    className={cn(
+                      "h-full transition-all duration-500",
+                      group.completedRounds === 5
+                        ? "bg-green-500"
+                        : "bg-blue-500"
+                    )}
+                    style={{ width: `${(group.completedRounds / 5) * 100}%` }}
+                  />
+                </div>
+
+                {/* Rounds */}
+                {isShiftExpanded && (
+                  <div className="bg-gray-50/40 p-4 border-t border-gray-100 animate-in slide-in-from-top-1 space-y-2">
+                    {group.rounds.map((round) => {
+                      const roundKey = `${shiftKey}-${round.roundNumber}`;
+                      const isRoundExpanded = expandedRound === roundKey;
+
+                      return (
+                        <div
+                          key={roundKey}
+                          className="rounded-lg bg-white border border-gray-100 overflow-hidden shadow-sm"
+                        >
+                          {/* Round Header */}
+                          <button
+                            type="button"
+                            className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
+                            onClick={() => toggleRound(roundKey)}
+                          >
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={cn(
+                                  "h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold border",
+                                  round.isComplete
+                                    ? "bg-green-100 border-green-200 text-green-700"
+                                    : "bg-gray-100 border-gray-200 text-gray-400"
+                                )}
+                              >
+                                {round.roundNumber}
+                              </div>
+                              <span className="font-medium text-sm text-gray-700">
+                                Putaran {round.roundNumber}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {round.isComplete ? (
+                                <div className="flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded border border-green-100">
+                                  <CheckCircle className="h-3 w-3" />
+                                  <span>Selesai</span>
+                                </div>
+                              ) : round.logs.length > 0 ? (
+                                <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded border border-orange-100">
+                                  {round.patrolledCount}/{round.totalLocations} Titik
+                                </span>
+                              ) : (
+                                <span className="text-xs font-medium text-gray-400">
+                                  Belum ada data
+                                </span>
+                              )}
+                              {isRoundExpanded ? (
+                                <ChevronUp className="h-4 w-4 text-gray-400" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 text-gray-400" />
+                              )}
+                            </div>
+                          </button>
+
+                          {/* Round Logs */}
+                          {isRoundExpanded && (
+                            <div className="border-t border-gray-100 p-3 space-y-2 bg-gray-50/30">
+                              {/* Patrolled locations */}
+                              {round.logs.map((log) => (
+                                <div
+                                  key={log.id}
+                                  className={cn(
+                                    "flex items-center justify-between p-3 rounded-lg bg-white border",
+                                    log.status === "tidak_aman"
+                                      ? "border-red-200 bg-red-50/50"
+                                      : "border-gray-100"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <MapPin
+                                      className={cn(
+                                        "h-4 w-4",
+                                        log.status === "tidak_aman"
+                                          ? "text-red-500"
+                                          : "text-green-500"
+                                      )}
+                                    />
+                                    <div>
+                                      <p className="font-medium text-sm text-gray-900">
+                                        {log.locationName}
+                                      </p>
+                                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                                        <span>
+                                          {format(
+                                            new Date(log.checkInTime),
+                                            "HH:mm"
+                                          )}
+                                        </span>
+                                        <span>•</span>
+                                        <span>{log.userName}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={cn(
+                                        "px-2 py-1 rounded text-xs font-bold uppercase",
+                                        log.status === "tidak_aman"
+                                          ? "bg-red-100 text-red-700"
+                                          : "bg-green-100 text-green-700"
+                                      )}
+                                    >
+                                      {log.status === "tidak_aman"
+                                        ? "Unsafe"
+                                        : "Safe"}
+                                    </span>
+
+                                    {log.imageData && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setSelectedImage(log.imageData)
+                                        }
+                                        className="p-1.5 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100"
+                                        title="Lihat Gambar"
+                                      >
+                                        <Eye className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setEditingLog({
+                                          id: log.id,
+                                          status: log.status || "aman",
+                                          notes: log.notes || "",
+                                        })
+                                      }
+                                      className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md"
+                                      title="Edit"
+                                    >
+                                      <Edit className="w-3.5 h-3.5" />
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => setDeletingLogId(log.id)}
+                                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-md"
+                                      title="Hapus"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+
+                              {/* Unpatrolled locations */}
+                              {round.unpatrolledLocations.map((loc) => (
+                                <div
+                                  key={`unpatrolled-${loc.id}`}
+                                  className="flex items-center justify-between p-3 rounded-lg bg-white border border-gray-100"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <MapPin className="h-4 w-4 text-gray-300" />
+                                    <p className="font-medium text-sm text-gray-400">
+                                      {loc.name}
+                                    </p>
+                                  </div>
+                                  <span className="text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded">
+                                    Belum
+                                  </span>
+                                </div>
+                              ))}
+
+                              {round.logs.length === 0 && round.unpatrolledLocations.length === 0 && (
+                                <p className="text-center text-gray-400 text-sm py-4">Tidak ada data</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
-      {/* Pagination Controls */}
-      <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-xl shadow-sm">
+      {/* Pagination */}
+      <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-xl shadow-sm mt-6">
         <div className="flex flex-1 justify-between sm:hidden">
           <button
             type="button"
@@ -425,7 +610,7 @@ export function PatrolHistoryTable({
               }
             }}
             disabled={currentPage <= 1}
-            className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             Previous
           </button>
@@ -439,7 +624,7 @@ export function PatrolHistoryTable({
               }
             }}
             disabled={currentPage >= totalPages}
-            className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             Next
           </button>
@@ -447,9 +632,8 @@ export function PatrolHistoryTable({
         <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-gray-700">
-              Menampilkan halaman{" "}
-              <span className="font-bold">{currentPage}</span> dari{" "}
-              <span className="font-bold">{totalPages}</span>
+              Menampilkan halaman <span className="font-bold">{currentPage}</span>{" "}
+              dari <span className="font-bold">{totalPages}</span>
             </p>
           </div>
           <div>
@@ -467,25 +651,11 @@ export function PatrolHistoryTable({
                   }
                 }}
                 disabled={currentPage <= 1}
-                className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
               >
-                <span className="sr-only">Previous</span>
-                <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                <ChevronLeft className="h-5 w-5" />
               </button>
-
-              {/* Simple Page Numbers */}
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let p = i + 1;
-                // Shift window if current page is high
-                if (totalPages > 5 && currentPage > 3) {
-                  p = currentPage - 3 + i + 1;
-                  if (p > totalPages)
-                    p =
-                      totalPages - ((totalPages > 5 ? 5 : totalPages) - 1 - i);
-                  // simplified logic: just show surrounding pages
-                  p = Math.max(1, Math.min(totalPages, currentPage - 2 + i));
-                }
-                // Correct logic for simple 5 page window centered on current
                 let startPage = Math.max(1, currentPage - 2);
                 const endPage = Math.min(totalPages, startPage + 4);
                 if (endPage - startPage < 4) {
@@ -503,18 +673,15 @@ export function PatrolHistoryTable({
                       params.set("page", pageNum.toString());
                       router.push(`?${params.toString()}`);
                     }}
-                    aria-current={currentPage === pageNum ? "page" : undefined}
-                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
-                      currentPage === pageNum
-                        ? "z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                        : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
-                    }`}
+                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${currentPage === pageNum
+                      ? "z-10 bg-blue-600 text-white"
+                      : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                      }`}
                   >
                     {pageNum}
                   </button>
                 );
               })}
-
               <button
                 type="button"
                 onClick={() => {
@@ -525,10 +692,9 @@ export function PatrolHistoryTable({
                   }
                 }}
                 disabled={currentPage >= totalPages}
-                className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
               >
-                <span className="sr-only">Next</span>
-                <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                <ChevronRight className="h-5 w-5" />
               </button>
             </nav>
           </div>
@@ -538,7 +704,7 @@ export function PatrolHistoryTable({
       {/* Image Modal */}
       {selectedImage && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
           onClick={() => setSelectedImage(null)}
           onKeyDown={(e) => e.key === "Escape" && setSelectedImage(null)}
           role="dialog"
@@ -546,33 +712,18 @@ export function PatrolHistoryTable({
           tabIndex={-1}
         >
           <div
-            className="relative max-w-4xl w-full animate-in zoom-in-95 duration-200"
+            className="relative max-w-4xl w-full"
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={() => {}}
+            onKeyDown={() => { }}
             role="dialog"
             tabIndex={-1}
           >
             <button
               type="button"
               onClick={() => setSelectedImage(null)}
-              className="absolute -top-12 right-0 p-2 text-white hover:text-gray-300 transition-colors"
+              className="absolute -top-12 right-0 p-2 text-white hover:text-gray-300"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                role="img"
-                aria-label="Close"
-              >
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
+              <X className="h-6 w-6" />
             </button>
             <Image
               src={selectedImage}
@@ -582,23 +733,12 @@ export function PatrolHistoryTable({
               className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
               unoptimized
             />
-            <a
-              href={selectedImage}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-900 rounded-lg font-medium hover:bg-gray-100 transition-colors"
-            >
-              Buka Full Size
-            </a>
           </div>
         </div>
       )}
 
       {/* Edit Dialog */}
-      <Dialog
-        open={!!editingLog}
-        onOpenChange={(open) => !open && setEditingLog(null)}
-      >
+      <Dialog open={!!editingLog} onOpenChange={(open) => !open && setEditingLog(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Log Patroli</DialogTitle>
@@ -611,7 +751,7 @@ export function PatrolHistoryTable({
                 </label>
                 <select
                   id="edit-status"
-                  className="w-full border rounded-md p-2 bg-transparent"
+                  className="w-full border rounded-md p-2 bg-white"
                   value={editingLog.status}
                   onChange={(e) =>
                     setEditingLog({
@@ -631,7 +771,7 @@ export function PatrolHistoryTable({
                   </label>
                   <textarea
                     id="edit-notes"
-                    className="w-full border rounded-md p-2 bg-transparent min-h-[100px]"
+                    className="w-full border rounded-md p-2 bg-white min-h-[100px]"
                     value={editingLog.notes || ""}
                     onChange={(e) =>
                       setEditingLog({ ...editingLog, notes: e.target.value })
@@ -655,30 +795,26 @@ export function PatrolHistoryTable({
               onClick={handleUpdate}
               className="px-4 py-2 text-sm rounded-md bg-blue-600 hover:bg-blue-700 text-white"
             >
-              Simpan Perubahan
+              Simpan
             </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={!!deletingLogId}
-        onOpenChange={() => setDeletingLogId(null)}
-      >
+      {/* Delete Dialog */}
+      <AlertDialog open={!!deletingLogId} onOpenChange={() => setDeletingLogId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Apakah anda yakin?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tindakan ini tidak dapat dibatalkan. Data log patroli ini akan
-              dihapus permanen dari database.
+              Data log patroli ini akan dihapus permanen.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
               onClick={executeDelete}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600 text-white"
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
               Hapus
             </AlertDialogAction>

@@ -1,4 +1,5 @@
 import { getPatrolHistory, getShifts } from "@/app/actions/history";
+import { getLocations } from "@/app/actions/locations";
 import { PatrolHistoryTable } from "./patrol-history-table";
 
 export default async function HistoryPage({
@@ -19,6 +20,7 @@ export default async function HistoryPage({
   });
 
   const shifts = await getShifts();
+  const locations = await getLocations();
 
   return (
     <div className="space-y-6">
@@ -28,6 +30,7 @@ export default async function HistoryPage({
         currentPage={metadata.currentPage}
         totalPages={metadata.totalPages}
         shifts={shifts}
+        locations={locations}
       />
     </div>
   );

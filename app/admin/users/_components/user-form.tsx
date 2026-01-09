@@ -35,16 +35,17 @@ const formSchema = z.object({
   name: z.string().min(1, "Nama wajib diisi"),
   username: z.string().min(3, "Username minimal 3 karakter"),
   password: z.string().optional(),
-  role: z.enum(["admin", "satpam"]),
+  role: z.enum(["admin", "satpam", "hr"]),
 });
 
 type UserFormProps = {
   isOpen: boolean;
   onClose: () => void;
-  user?: typeof users.$inferSelect | null; // Pass user for edit mode
+  user?: typeof users.$inferSelect | null;
+  currentUserRole?: string;
 };
 
-export function UserForm({ isOpen, onClose, user }: UserFormProps) {
+export function UserForm({ isOpen, onClose, user, currentUserRole }: UserFormProps) {
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -153,8 +154,15 @@ export function UserForm({ isOpen, onClose, user }: UserFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="satpam">Satpam</SelectItem>
+                      {currentUserRole === "hr" ? (
+                        <SelectItem value="satpam">Satpam</SelectItem>
+                      ) : (
+                        <>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="satpam">Satpam</SelectItem>
+                          <SelectItem value="hr">HR</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

@@ -22,9 +22,15 @@ interface Shift {
   endTime: string;
 }
 
-export function ShiftList({ initialShifts }: { initialShifts: Shift[] }) {
+interface ShiftListProps {
+  initialShifts: Shift[];
+  currentUserRole?: string;
+}
+
+export function ShiftList({ initialShifts, currentUserRole }: ShiftListProps) {
   const [isPending, startTransition] = useTransition();
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const isHR = currentUserRole === "hr";
 
   const handleDelete = () => {
     if (deletingId) {
@@ -67,15 +73,17 @@ export function ShiftList({ initialShifts }: { initialShifts: Shift[] }) {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setDeletingId(shift.id)}
-                disabled={isPending}
-                className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors self-end sm:self-center disabled:opacity-50"
-                title="Hapus Shift"
-              >
-                <Trash2 className="h-5 w-5" />
-              </button>
+              {!isHR && (
+                <button
+                  type="button"
+                  onClick={() => setDeletingId(shift.id)}
+                  disabled={isPending}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors self-end sm:self-center disabled:opacity-50"
+                  title="Hapus Shift"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              )}
             </div>
           ))
         )}

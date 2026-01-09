@@ -47,6 +47,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
+        // Block inactive users from login
+        if (!user.isActive) {
+          return null;
+        }
+
         return {
           id: user.id.toString(),
           name: user.name,

@@ -2,10 +2,10 @@
 
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { Pencil, Plus, Trash } from "lucide-react";
+import { Pencil, Plus, Power, Trash } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "react-hot-toast";
-import { deleteUser } from "@/app/actions/users";
+import { deleteUser, toggleUserActive } from "@/app/actions/users";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,15 +22,17 @@ import { UserForm } from "./user-form";
 
 type UserListProps = {
   users: (typeof users.$inferSelect)[];
+  currentUserRole: string;
 };
 
-export function UserList({ users: initialUsers }: UserListProps) {
+export function UserList({ users: initialUsers, currentUserRole }: UserListProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<
     typeof users.$inferSelect | null
   >(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
+  const [isToggling, startToggleTransition] = useTransition();
 
   const handleCreate = () => {
     setEditingUser(null);
@@ -59,6 +61,23 @@ export function UserList({ users: initialUsers }: UserListProps) {
     });
   };
 
+  const handleToggleActive = (userId: number, currentStatus: boolean) => {
+    startToggleTransition(async () => {
+      try {
+        const res = await toggleUserActive(userId);
+        if (res?.error) {
+          toast.error(res.error);
+        } else {
+          toast.success(
+            currentStatus ? "User berhasil dinonaktifkan" : "User berhasil diaktifkan"
+          );
+        }
+      } catch {
+        toast.error("Terjadi kesalahan");
+      }
+    });
+  };
+
   return (
     <>
       <div className="flex justify-end mb-4">
@@ -77,17 +96,20 @@ export function UserList({ users: initialUsers }: UserListProps) {
                   Username
                 </th>
                 <th className="px-6 py-4 font-semibold text-gray-900">Role</th>
+                <th className="px-6 py-4 font-semibold text-gray-900">Status</th>
                 <th className="px-6 py-4 font-semibold text-gray-900">
                   Dibuat Pada
                 </th>
-                <th className="px-6 py-4 font-semibold text-gray-900">Aksi</th>
+                {currentUserRole !== "hr" && (
+                  <th className="px-6 py-4 font-semibold text-gray-900">Aksi</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {initialUsers.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={currentUserRole === "hr" ? 5 : 6}
                     className="px-6 py-4 text-center text-gray-500"
                   >
                     Belum ada user.
@@ -106,31 +128,55 @@ export function UserList({ users: initialUsers }: UserListProps) {
                     <td className="px-6 py-4 text-gray-500 capitalize">
                       {user.role}
                     </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.isActive
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                          }`}
+                      >
+                        {user.isActive ? "Aktif" : "Nonaktif"}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 text-gray-500">
                       {user.createdAt
                         ? format(new Date(user.createdAt), "dd MMM yyyy", {
-                            locale: id,
-                          })
+                          locale: id,
+                        })
                         : "-"}
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(user)}
-                        >
-                          <Pencil className="h-4 w-4 text-blue-500" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteId(user.id)}
-                        >
-                          <Trash className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </td>
+                    {currentUserRole !== "hr" && (
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleToggleActive(user.id, user.isActive)}
+                            disabled={isToggling}
+                            title={user.isActive ? "Nonaktifkan User" : "Aktifkan User"}
+                          >
+                            <Power
+                              className={`h-4 w-4 ${user.isActive ? "text-green-500" : "text-gray-400"
+                                }`}
+                            />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(user)}
+                          >
+                            <Pencil className="h-4 w-4 text-blue-500" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeleteId(user.id)}
+                          >
+                            <Trash className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -143,6 +189,7 @@ export function UserList({ users: initialUsers }: UserListProps) {
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         user={editingUser}
+        currentUserRole={currentUserRole}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

@@ -80,6 +80,7 @@ export const getPatrolHistory = async ({
         status: patrolHistory.status,
         notes: patrolHistory.notes,
         imageData: patrolHistory.imageData,
+        roundNumber: patrolHistory.roundNumber,
       })
       .from(patrolHistory)
       .leftJoin(users, eq(patrolHistory.userId, users.id))
