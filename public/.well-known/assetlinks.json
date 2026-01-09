@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.patrolisatpam.twa",
+        "sha256_cert_fingerprints": ["F2:2B:CA:AA:52:3B:B2:E7:B8:2A:54:51:6B:3E:71:B6:34:59:C0:61:67:69:7D:05:DC:C1:7C:CC:26:02:AE:73"]
+      }
+    }]
