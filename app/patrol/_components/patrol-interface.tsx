@@ -20,7 +20,6 @@ import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
 import { checkInPatrol, getPatrolProgress } from "@/app/actions/patrol";
-import { TOTAL_ROUNDS } from "@/lib/constants";
 import { uploadImage } from "@/app/actions/upload";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TOTAL_ROUNDS } from "@/lib/constants";
 import { cn } from "@/lib/utils"; // Assuming you have a cn utility
 
 // Dynamic import for Map to avoid SSR issues
@@ -413,7 +413,13 @@ export default function PatrolInterface({
       <div className="flex min-h-dvh flex-col items-center justify-center bg-gray-50 p-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl text-center">
           <div className="mb-6 mx-auto flex h-20 w-48 items-center justify-center">
-            <Image src="/logo.webp" alt="Logo" width={210} height={90} className="w-full h-full object-contain" />
+            <Image
+              src="/logo.webp"
+              alt="Logo"
+              width={210}
+              height={90}
+              className="w-full h-full object-contain"
+            />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Mulai Patroli
@@ -721,10 +727,11 @@ export default function PatrolInterface({
               <button
                 type="button"
                 onClick={() => setCheckInStatus("aman")}
-                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${checkInStatus === "aman"
-                  ? "border-green-500 bg-green-50 text-green-700"
-                  : "border-gray-200 hover:border-green-200 text-gray-500"
-                  }`}
+                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                  checkInStatus === "aman"
+                    ? "border-green-500 bg-green-50 text-green-700"
+                    : "border-gray-200 hover:border-green-200 text-gray-500"
+                }`}
               >
                 <CheckCircle
                   className={`h-8 w-8 ${checkInStatus === "aman" ? "fill-green-500 text-white" : ""}`}
@@ -735,10 +742,11 @@ export default function PatrolInterface({
               <button
                 type="button"
                 onClick={() => setCheckInStatus("tidak_aman")}
-                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${checkInStatus === "tidak_aman"
-                  ? "border-red-500 bg-red-50 text-red-700"
-                  : "border-gray-200 hover:border-red-200 text-gray-500"
-                  }`}
+                className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                  checkInStatus === "tidak_aman"
+                    ? "border-red-500 bg-red-50 text-red-700"
+                    : "border-gray-200 hover:border-red-200 text-gray-500"
+                }`}
               >
                 <LogOut
                   className={`h-8 w-8 ${checkInStatus === "tidak_aman" ? "fill-red-500 text-white" : ""}`}

@@ -101,7 +101,9 @@ export async function getUnpatrolledLocations(dateString: string) {
     const roundsStatus = [];
     for (let r = 1; r <= TOTAL_ROUNDS; r++) {
       const patrolledInRound = shiftRounds[r] || new Set();
-      const unpatrolled = allLocations.filter((loc) => !patrolledInRound.has(loc.id));
+      const unpatrolled = allLocations.filter(
+        (loc) => !patrolledInRound.has(loc.id),
+      );
       roundsStatus.push({
         roundNumber: r,
         patrolledCount: patrolledInRound.size,
@@ -113,7 +115,7 @@ export async function getUnpatrolledLocations(dateString: string) {
     const completedRounds = roundsStatus.filter((r) => r.isComplete).length;
     const totalPatrolled = Object.values(shiftRounds).reduce(
       (sum, set) => sum + set.size,
-      0
+      0,
     );
 
     return {

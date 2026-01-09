@@ -1,11 +1,11 @@
 "use client";
 
 import { Eye, EyeOff, Lock, User } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import Image from "next/image";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -45,7 +45,13 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8 rounded-2xl bg-white p-10 shadow-xl">
         <div className="text-center">
           <div className="mx-auto flex h-20 w-48 items-center justify-center">
-            <Image src="/logo.webp" alt="Logo" width={210} height={90} className="w-full h-full object-contain" />
+            <Image
+              src="/logo.webp"
+              alt="Logo"
+              width={210}
+              height={90}
+              className="w-full h-full object-contain"
+            />
           </div>
           <p className="mt-4 text-sm text-gray-600">
             Silakan Login untuk memulai sesi
@@ -129,8 +135,6 @@ export default function LoginPage() {
               ) : null}
               {loading ? "Memproses..." : "Masuk"}
             </button>
-
-
           </div>
         </form>
       </div>

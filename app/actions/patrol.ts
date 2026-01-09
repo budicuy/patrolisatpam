@@ -2,6 +2,7 @@
 
 import { and, eq, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/lib/auth";
 import { TIMEZONE_OFFSET_MS, TOTAL_ROUNDS } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { locations, patrolHistory, shifts } from "@/lib/schema";
@@ -70,11 +71,23 @@ function getShiftWindow(
 
 export async function getPatrolProgress(shiftId: number) {
   try {
+    // Auth check - user must be logged in
+    const session = await auth();
+    if (!session?.user) {
+      return {
+        currentRound: 1,
+        visitedLocationIds: [],
+        totalLocations: 0,
+        error: "Unauthorized",
+      };
+    }
+
     const shift = await db.query.shifts.findFirst({
       where: eq(shifts.id, shiftId),
     });
 
-    if (!shift) return { currentRound: 1, visitedLocationIds: [], totalLocations: 0 };
+    if (!shift)
+      return { currentRound: 1, visitedLocationIds: [], totalLocations: 0 };
 
     // Use current server time, but logic inside handles WITA adjustment
     const { start, end } = getShiftWindow({
@@ -85,7 +98,9 @@ export async function getPatrolProgress(shiftId: number) {
     // Run both queries in parallel for better performance
     const [allLocations, logs] = await Promise.all([
       // Get total locations
-      db.select({ id: locations.id }).from(locations),
+      db
+        .select({ id: locations.id })
+        .from(locations),
       // Get all logs for this shift window
       db
         .select({
@@ -132,12 +147,17 @@ export async function getPatrolProgress(shiftId: number) {
       visitedLocationIds,
       totalLocations,
       completedRounds: Object.entries(roundsData).filter(
-        ([, locs]) => locs.size >= totalLocations
+        ([, locs]) => locs.size >= totalLocations,
       ).length,
     };
   } catch (error) {
     console.error("Failed to get patrol progress", error);
-    return { currentRound: 1, visitedLocationIds: [], totalLocations: 0, completedRounds: 0 };
+    return {
+      currentRound: 1,
+      visitedLocationIds: [],
+      totalLocations: 0,
+      completedRounds: 0,
+    };
   }
 }
 
@@ -151,6 +171,18 @@ export async function checkInPatrol(
   imageData?: string,
 ) {
   try {
+    // Auth check - user must be logged in
+    const session = await auth();
+    if (!session?.user) {
+      throw new Error("Unauthorized: Please login first");
+    }
+
+    // Validate that user can only check in for themselves
+    const sessionUserId = Number((session.user as { id?: string }).id);
+    if (sessionUserId !== userId) {
+      throw new Error("Unauthorized: You can only check in for yourself");
+    }
+
     // 1. Get Shift Details
     const shift = await db.query.shifts.findFirst({
       where: eq(shifts.id, shiftId),

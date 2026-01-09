@@ -32,7 +32,10 @@ export default async function ShiftsPage() {
         <div className={isHR ? "" : "lg:col-span-2"}>
           <div className="rounded-xl bg-white p-6 shadow-md">
             <h2 className="mb-4 text-xl font-semibold">Daftar Shift</h2>
-            <ShiftList initialShifts={shifts} currentUserRole={currentUserRole} />
+            <ShiftList
+              initialShifts={shifts}
+              currentUserRole={currentUserRole}
+            />
           </div>
         </div>
       </div>

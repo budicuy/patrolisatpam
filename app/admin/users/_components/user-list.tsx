@@ -25,7 +25,10 @@ type UserListProps = {
   currentUserRole: string;
 };
 
-export function UserList({ users: initialUsers, currentUserRole }: UserListProps) {
+export function UserList({
+  users: initialUsers,
+  currentUserRole,
+}: UserListProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<
     typeof users.$inferSelect | null
@@ -69,7 +72,9 @@ export function UserList({ users: initialUsers, currentUserRole }: UserListProps
           toast.error(res.error);
         } else {
           toast.success(
-            currentStatus ? "User berhasil dinonaktifkan" : "User berhasil diaktifkan"
+            currentStatus
+              ? "User berhasil dinonaktifkan"
+              : "User berhasil diaktifkan",
           );
         }
       } catch {
@@ -96,12 +101,16 @@ export function UserList({ users: initialUsers, currentUserRole }: UserListProps
                   Username
                 </th>
                 <th className="px-6 py-4 font-semibold text-gray-900">Role</th>
-                <th className="px-6 py-4 font-semibold text-gray-900">Status</th>
+                <th className="px-6 py-4 font-semibold text-gray-900">
+                  Status
+                </th>
                 <th className="px-6 py-4 font-semibold text-gray-900">
                   Dibuat Pada
                 </th>
                 {currentUserRole !== "hr" && (
-                  <th className="px-6 py-4 font-semibold text-gray-900">Aksi</th>
+                  <th className="px-6 py-4 font-semibold text-gray-900">
+                    Aksi
+                  </th>
                 )}
               </tr>
             </thead>
@@ -126,14 +135,18 @@ export function UserList({ users: initialUsers, currentUserRole }: UserListProps
                     </td>
                     <td className="px-6 py-4 text-gray-500">{user.username}</td>
                     <td className="px-6 py-4 text-gray-500">
-                      {user.role === "hr" ? "HR" : user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      {user.role === "hr"
+                        ? "HR"
+                        : user.role.charAt(0).toUpperCase() +
+                          user.role.slice(1)}
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.isActive
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                          }`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          user.isActive
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
                       >
                         {user.isActive ? "Aktif" : "Nonaktif"}
                       </span>
@@ -141,8 +154,8 @@ export function UserList({ users: initialUsers, currentUserRole }: UserListProps
                     <td className="px-6 py-4 text-gray-500">
                       {user.createdAt
                         ? format(new Date(user.createdAt), "dd MMM yyyy", {
-                          locale: id,
-                        })
+                            locale: id,
+                          })
                         : "-"}
                     </td>
                     {currentUserRole !== "hr" && (
@@ -151,13 +164,22 @@ export function UserList({ users: initialUsers, currentUserRole }: UserListProps
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleToggleActive(user.id, user.isActive)}
+                            onClick={() =>
+                              handleToggleActive(user.id, user.isActive)
+                            }
                             disabled={isToggling}
-                            title={user.isActive ? "Nonaktifkan User" : "Aktifkan User"}
+                            title={
+                              user.isActive
+                                ? "Nonaktifkan User"
+                                : "Aktifkan User"
+                            }
                           >
                             <Power
-                              className={`h-4 w-4 ${user.isActive ? "text-green-500" : "text-gray-400"
-                                }`}
+                              className={`h-4 w-4 ${
+                                user.isActive
+                                  ? "text-green-500"
+                                  : "text-gray-400"
+                              }`}
                             />
                           </Button>
                           <Button

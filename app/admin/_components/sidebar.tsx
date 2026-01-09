@@ -8,11 +8,11 @@ import {
   MapPin,
   Users,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 
 const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -28,7 +28,13 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
   return (
     <div className="flex h-full min-h-dvh w-64 flex-col bg-white shadow-lg">
       <div className="flex h-16 items-center justify-center border-b border-gray-200 px-4">
-        <Image src={"/logo.webp"} alt="Logo" width={210} height={90} className="w-full h-full object-contain" />
+        <Image
+          src={"/logo.webp"}
+          alt="Logo"
+          width={210}
+          height={90}
+          className="w-full h-full object-contain"
+        />
       </div>
 
       <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto">
@@ -66,7 +72,7 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
           type="button"
           onClick={() => {
             onLinkClick?.();
-            signOut({ callbackUrl: "/login" })
+            signOut({ callbackUrl: "/login" });
           }}
           className="group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
         >

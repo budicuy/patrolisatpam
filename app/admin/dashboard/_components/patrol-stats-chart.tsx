@@ -42,8 +42,12 @@ export function PatrolStatsChart({ data }: PatrolStatsChartProps) {
     return (
       <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
         <div className="text-center">
-          <p className="text-sm font-medium text-gray-400">Belum ada data patroli</p>
-          <p className="text-xs text-gray-300 mt-1">Data akan muncul setelah petugas check-in</p>
+          <p className="text-sm font-medium text-gray-400">
+            Belum ada data patroli
+          </p>
+          <p className="text-xs text-gray-300 mt-1">
+            Data akan muncul setelah petugas check-in
+          </p>
         </div>
       </div>
     );
@@ -63,7 +67,11 @@ export function PatrolStatsChart({ data }: PatrolStatsChartProps) {
               <stop offset="95%" stopColor="#93C5FD" stopOpacity={0.8} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+          <CartesianGrid
+            strokeDasharray="3 3"
+            vertical={false}
+            stroke="#f1f5f9"
+          />
           <XAxis
             dataKey="name"
             axisLine={false}

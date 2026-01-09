@@ -127,14 +127,12 @@ export default function MapPicker({
         minZoom={5}
         maxBounds={[
           [-12, 94], // Southwest corner
-          [15, 142],  // Northeast corner
+          [15, 142], // Northeast corner
         ]}
         maxBoundsViscosity={1.0}
         style={{ height: "100%", width: "100%" }}
       >
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-        />
+        <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
         <LocationMarker
           position={position}
           onPositionChange={onPositionChange}

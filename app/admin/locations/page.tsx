@@ -23,7 +23,10 @@ export default async function LocationsPage() {
         <div className={isHR ? "" : "lg:col-span-2"}>
           <div className="rounded-xl bg-white p-6 shadow-md">
             <h2 className="mb-4 text-xl font-semibold">Daftar Lokasi</h2>
-            <LocationList initialLocations={locations} currentUserRole={currentUserRole} />
+            <LocationList
+              initialLocations={locations}
+              currentUserRole={currentUserRole}
+            />
           </div>
         </div>
 

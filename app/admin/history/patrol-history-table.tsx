@@ -195,9 +195,13 @@ export function PatrolHistoryTable({
           shiftStartTime: shift?.startTime || "",
           shiftEndTime: shift?.endTime || "",
           date: dateKey,
-          dateFormatted: format(new Date(log.checkInTime), "EEEE, d MMMM yyyy", {
-            locale: id,
-          }),
+          dateFormatted: format(
+            new Date(log.checkInTime),
+            "EEEE, d MMMM yyyy",
+            {
+              locale: id,
+            },
+          ),
           rounds: [],
           completedRounds: 0,
         };
@@ -207,7 +211,9 @@ export function PatrolHistoryTable({
           groups[key].rounds.push({
             roundNumber: i,
             logs: [],
-            unpatrolledLocations: [...locations].sort((a, b) => a.order - b.order),
+            unpatrolledLocations: [...locations].sort(
+              (a, b) => a.order - b.order,
+            ),
             isComplete: false,
             patrolledCount: 0,
             totalLocations: locations.length,
@@ -227,7 +233,7 @@ export function PatrolHistoryTable({
       for (const round of groups[key].rounds) {
         // Get patrolled location names
         const patrolledLocationNames = new Set(
-          round.logs.map((l) => l.locationName)
+          round.logs.map((l) => l.locationName),
         );
 
         // Filter out patrolled locations
@@ -236,15 +242,17 @@ export function PatrolHistoryTable({
           .sort((a, b) => a.order - b.order);
 
         round.patrolledCount = patrolledLocationNames.size;
-        round.isComplete = round.unpatrolledLocations.length === 0 && round.logs.length > 0;
+        round.isComplete =
+          round.unpatrolledLocations.length === 0 && round.logs.length > 0;
 
         round.logs.sort(
           (a, b) =>
-            new Date(b.checkInTime).getTime() - new Date(a.checkInTime).getTime()
+            new Date(b.checkInTime).getTime() -
+            new Date(a.checkInTime).getTime(),
         );
       }
       groups[key].completedRounds = groups[key].rounds.filter(
-        (r) => r.isComplete
+        (r) => r.isComplete,
       ).length;
     }
 
@@ -271,7 +279,10 @@ export function PatrolHistoryTable({
       <div className="space-y-4 mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
           <div className="w-full sm:w-auto">
-            <Label htmlFor="date-filter" className="mb-2 block text-xs font-medium text-gray-900">
+            <Label
+              htmlFor="date-filter"
+              className="mb-2 block text-xs font-medium text-gray-900"
+            >
               Filter Tanggal
             </Label>
             <div className="relative">
@@ -284,12 +295,17 @@ export function PatrolHistoryTable({
                 className="w-full sm:w-[200px] pl-10 cursor-pointer bg-white text-black border-gray-200 focus:border-blue-500 placeholder:text-gray-400 [&::-webkit-calendar-picker-indicator]:hidden"
                 value={filterDate}
                 onChange={(e) => handleFilterChange("date", e.target.value)}
-                onClick={(e) => e.currentTarget.showPicker && e.currentTarget.showPicker()}
+                onClick={(e) =>
+                  e.currentTarget.showPicker && e.currentTarget.showPicker()
+                }
               />
             </div>
           </div>
           <div className="w-full sm:w-auto">
-            <Label htmlFor="shift-filter" className="mb-2 block text-xs font-medium text-gray-900">
+            <Label
+              htmlFor="shift-filter"
+              className="mb-2 block text-xs font-medium text-gray-900"
+            >
               Filter Shift
             </Label>
             <Select
@@ -349,7 +365,7 @@ export function PatrolHistoryTable({
                   type="button"
                   className={cn(
                     "w-full p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors",
-                    isShiftExpanded && "bg-gray-50"
+                    isShiftExpanded && "bg-gray-50",
                   )}
                   onClick={() => toggleShift(shiftKey)}
                 >
@@ -359,7 +375,7 @@ export function PatrolHistoryTable({
                         "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
                         group.completedRounds === 5
                           ? "bg-green-100 text-green-600"
-                          : "bg-blue-100 text-blue-600"
+                          : "bg-blue-100 text-blue-600",
                       )}
                     >
                       <Clock className="h-5 w-5" />
@@ -385,7 +401,7 @@ export function PatrolHistoryTable({
                           "text-xl font-bold",
                           group.completedRounds === 5
                             ? "text-green-600"
-                            : "text-blue-600"
+                            : "text-blue-600",
                         )}
                       >
                         {group.completedRounds}
@@ -412,7 +428,7 @@ export function PatrolHistoryTable({
                       "h-full transition-all duration-500",
                       group.completedRounds === 5
                         ? "bg-green-500"
-                        : "bg-blue-500"
+                        : "bg-blue-500",
                     )}
                     style={{ width: `${(group.completedRounds / 5) * 100}%` }}
                   />
@@ -442,7 +458,7 @@ export function PatrolHistoryTable({
                                   "h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold border",
                                   round.isComplete
                                     ? "bg-green-100 border-green-200 text-green-700"
-                                    : "bg-gray-100 border-gray-200 text-gray-400"
+                                    : "bg-gray-100 border-gray-200 text-gray-400",
                                 )}
                               >
                                 {round.roundNumber}
@@ -460,7 +476,8 @@ export function PatrolHistoryTable({
                                 </div>
                               ) : round.logs.length > 0 ? (
                                 <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded border border-orange-100">
-                                  {round.patrolledCount}/{round.totalLocations} Titik
+                                  {round.patrolledCount}/{round.totalLocations}{" "}
+                                  Titik
                                 </span>
                               ) : (
                                 <span className="text-xs font-medium text-gray-400">
@@ -486,7 +503,7 @@ export function PatrolHistoryTable({
                                     "flex items-center justify-between p-3 rounded-lg bg-white border",
                                     log.status === "tidak_aman"
                                       ? "border-red-200 bg-red-50/50"
-                                      : "border-gray-100"
+                                      : "border-gray-100",
                                   )}
                                 >
                                   <div className="flex items-center gap-3">
@@ -495,7 +512,7 @@ export function PatrolHistoryTable({
                                         "h-4 w-4",
                                         log.status === "tidak_aman"
                                           ? "text-red-500"
-                                          : "text-green-500"
+                                          : "text-green-500",
                                       )}
                                     />
                                     <div>
@@ -506,7 +523,7 @@ export function PatrolHistoryTable({
                                         <span>
                                           {format(
                                             new Date(log.checkInTime),
-                                            "HH:mm"
+                                            "HH:mm",
                                           )}
                                         </span>
                                         <span>•</span>
@@ -521,7 +538,7 @@ export function PatrolHistoryTable({
                                         "px-2 py-1 rounded text-xs font-bold uppercase",
                                         log.status === "tidak_aman"
                                           ? "bg-red-100 text-red-700"
-                                          : "bg-green-100 text-green-700"
+                                          : "bg-green-100 text-green-700",
                                       )}
                                     >
                                       {log.status === "tidak_aman"
@@ -587,9 +604,12 @@ export function PatrolHistoryTable({
                                 </div>
                               ))}
 
-                              {round.logs.length === 0 && round.unpatrolledLocations.length === 0 && (
-                                <p className="text-center text-gray-400 text-sm py-4">Tidak ada data</p>
-                              )}
+                              {round.logs.length === 0 &&
+                                round.unpatrolledLocations.length === 0 && (
+                                  <p className="text-center text-gray-400 text-sm py-4">
+                                    Tidak ada data
+                                  </p>
+                                )}
                             </div>
                           )}
                         </div>
@@ -638,8 +658,9 @@ export function PatrolHistoryTable({
         <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-gray-700">
-              Menampilkan halaman <span className="font-bold">{currentPage}</span>{" "}
-              dari <span className="font-bold">{totalPages}</span>
+              Menampilkan halaman{" "}
+              <span className="font-bold">{currentPage}</span> dari{" "}
+              <span className="font-bold">{totalPages}</span>
             </p>
           </div>
           <div>
@@ -679,10 +700,11 @@ export function PatrolHistoryTable({
                       params.set("page", pageNum.toString());
                       router.push(`?${params.toString()}`);
                     }}
-                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${currentPage === pageNum
-                      ? "z-10 bg-blue-600 text-white"
-                      : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                      }`}
+                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                      currentPage === pageNum
+                        ? "z-10 bg-blue-600 text-white"
+                        : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                    }`}
                   >
                     {pageNum}
                   </button>
@@ -720,7 +742,7 @@ export function PatrolHistoryTable({
           <div
             className="relative max-w-4xl w-full"
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={() => { }}
+            onKeyDown={() => {}}
             role="dialog"
             tabIndex={-1}
           >
@@ -744,7 +766,10 @@ export function PatrolHistoryTable({
       )}
 
       {/* Edit Dialog */}
-      <Dialog open={!!editingLog} onOpenChange={(open) => !open && setEditingLog(null)}>
+      <Dialog
+        open={!!editingLog}
+        onOpenChange={(open) => !open && setEditingLog(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Log Patroli</DialogTitle>
@@ -808,7 +833,10 @@ export function PatrolHistoryTable({
       </Dialog>
 
       {/* Delete Dialog */}
-      <AlertDialog open={!!deletingLogId} onOpenChange={() => setDeletingLogId(null)}>
+      <AlertDialog
+        open={!!deletingLogId}
+        onOpenChange={() => setDeletingLogId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Apakah anda yakin?</AlertDialogTitle>

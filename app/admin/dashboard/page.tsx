@@ -1,11 +1,11 @@
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
 import { count } from "drizzle-orm";
 import { History, MapPin, Users } from "lucide-react";
 import { db } from "@/lib/db";
 import { locations, patrolHistory, users } from "@/lib/schema";
-import { StatCard } from "./_components/stat-card";
 import { DashboardClient } from "./_components/dashboard-client";
-import { format } from "date-fns";
-import { id } from "date-fns/locale";
+import { StatCard } from "./_components/stat-card";
 
 async function getStats() {
   // Run all count queries in parallel for better performance
@@ -30,9 +30,12 @@ export default async function AdminDashboard() {
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       {/* Header */}
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+          Dashboard
+        </h1>
         <p className="text-sm text-gray-500">
-          Overview status patroli satpam hari ini, {format(today, "EEEE, d MMMM yyyy", { locale: id })}
+          Overview status patroli satpam hari ini,{" "}
+          {format(today, "EEEE, d MMMM yyyy", { locale: id })}
         </p>
       </div>
 

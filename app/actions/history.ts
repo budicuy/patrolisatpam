@@ -2,8 +2,34 @@
 
 import { desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { locations, patrolHistory, shifts, users } from "@/lib/schema";
+
+// Extended user type for session
+interface ExtendedUser {
+  id?: string;
+  role?: string;
+}
+
+// Helper to check admin/hr access
+async function requireAdminOrHR(): Promise<{
+  authorized: boolean;
+  error?: string;
+}> {
+  const session = await auth();
+  if (!session?.user) {
+    return { authorized: false, error: "Unauthorized: Please login first" };
+  }
+  const user = session.user as ExtendedUser;
+  if (user.role !== "admin" && user.role !== "hr") {
+    return {
+      authorized: false,
+      error: "Unauthorized: Admin or HR access required",
+    };
+  }
+  return { authorized: true };
+}
 
 export const getPatrolHistory = async ({
   page = 1,
@@ -17,6 +43,16 @@ export const getPatrolHistory = async ({
   shiftId?: string;
 }) => {
   try {
+    // Auth check - only admin and hr can view history
+    const authCheck = await requireAdminOrHR();
+    if (!authCheck.authorized) {
+      return {
+        data: [],
+        metadata: { currentPage: 1, totalPages: 1, totalGroups: 0 },
+        error: authCheck.error,
+      };
+    }
+
     const offset = (page - 1) * limit;
 
     // Build conditional WHERE clause
@@ -119,6 +155,16 @@ export const getPatrolHistory = async ({
 
 export async function deletePatrolLog(id: number) {
   try {
+    // Auth check - only admin can delete patrol logs
+    const session = await auth();
+    if (!session?.user) {
+      return { error: "Unauthorized: Please login first" };
+    }
+    const user = session.user as ExtendedUser;
+    if (user.role !== "admin") {
+      return { error: "Unauthorized: Admin access required" };
+    }
+
     await db.delete(patrolHistory).where(eq(patrolHistory.id, id));
     revalidatePath("/admin/history");
     return { success: true };
@@ -133,6 +179,16 @@ export async function updatePatrolLog(
   data: { status: "aman" | "tidak_aman"; notes?: string },
 ) {
   try {
+    // Auth check - only admin can update patrol logs
+    const session = await auth();
+    if (!session?.user) {
+      return { error: "Unauthorized: Please login first" };
+    }
+    const user = session.user as ExtendedUser;
+    if (user.role !== "admin") {
+      return { error: "Unauthorized: Admin access required" };
+    }
+
     await db.update(patrolHistory).set(data).where(eq(patrolHistory.id, id));
     revalidatePath("/admin/history");
     return { success: true };
@@ -144,6 +200,12 @@ export async function updatePatrolLog(
 
 export async function getShifts() {
   try {
+    // Auth check - only admin and hr can fetch shifts in history context
+    const authCheck = await requireAdminOrHR();
+    if (!authCheck.authorized) {
+      return [];
+    }
+
     const allShifts = await db.select().from(shifts);
     return allShifts;
   } catch (error) {

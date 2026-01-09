@@ -65,10 +65,15 @@ export const patrolHistory = pgTable(
   (table) => ({
     // Indexes for frequently queried columns
     shiftIdIdx: index("patrol_history_shift_id_idx").on(table.shiftId),
-    checkInTimeIdx: index("patrol_history_check_in_time_idx").on(table.checkInTime),
+    checkInTimeIdx: index("patrol_history_check_in_time_idx").on(
+      table.checkInTime,
+    ),
     userIdIdx: index("patrol_history_user_id_idx").on(table.userId),
     // Composite index for common query patterns
-    shiftTimeIdx: index("patrol_history_shift_time_idx").on(table.shiftId, table.checkInTime),
+    shiftTimeIdx: index("patrol_history_shift_time_idx").on(
+      table.shiftId,
+      table.checkInTime,
+    ),
   }),
 );
 

@@ -45,7 +45,12 @@ type UserFormProps = {
   currentUserRole?: string;
 };
 
-export function UserForm({ isOpen, onClose, user, currentUserRole }: UserFormProps) {
+export function UserForm({
+  isOpen,
+  onClose,
+  user,
+  currentUserRole,
+}: UserFormProps) {
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<z.infer<typeof formSchema>>({

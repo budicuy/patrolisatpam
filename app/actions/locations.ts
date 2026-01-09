@@ -2,14 +2,48 @@
 
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { locations, patrolHistory } from "@/lib/schema";
 
+// Extended user type for session
+interface ExtendedUser {
+  id?: string;
+  role?: string;
+}
+
+// Helper to check admin access
+async function requireAdmin(): Promise<{
+  authorized: boolean;
+  error?: string;
+}> {
+  const session = await auth();
+  if (!session?.user) {
+    return { authorized: false, error: "Unauthorized: Please login first" };
+  }
+  const user = session.user as ExtendedUser;
+  if (user.role !== "admin") {
+    return { authorized: false, error: "Unauthorized: Admin access required" };
+  }
+  return { authorized: true };
+}
+
 export async function getLocations() {
+  // This can be accessed by logged-in users (satpam needs it for patrol)
+  const session = await auth();
+  if (!session?.user) {
+    throw new Error("Unauthorized: Please login first");
+  }
   return await db.select().from(locations).orderBy(locations.order);
 }
 
 export async function createLocation(formData: FormData) {
+  // Auth check - only admin can create locations
+  const authCheck = await requireAdmin();
+  if (!authCheck.authorized) {
+    return { error: authCheck.error };
+  }
+
   const name = formData.get("name") as string;
   const latitude = parseFloat(formData.get("latitude") as string);
   const longitude = parseFloat(formData.get("longitude") as string);
@@ -38,6 +72,12 @@ export async function createLocation(formData: FormData) {
 
 export async function deleteLocation(id: number) {
   try {
+    // Auth check - only admin can delete locations
+    const authCheck = await requireAdmin();
+    if (!authCheck.authorized) {
+      return { error: authCheck.error };
+    }
+
     await db.transaction(async (tx) => {
       // Delete associated patrol history first to satisfy foreign key constraints
       await tx.delete(patrolHistory).where(eq(patrolHistory.locationId, id));
@@ -53,6 +93,12 @@ export async function deleteLocation(id: number) {
 }
 
 export async function updateLocation(id: number, formData: FormData) {
+  // Auth check - only admin can update locations
+  const authCheck = await requireAdmin();
+  if (!authCheck.authorized) {
+    return { error: authCheck.error };
+  }
+
   const name = formData.get("name") as string;
   const latitude = parseFloat(formData.get("latitude") as string);
   const longitude = parseFloat(formData.get("longitude") as string);

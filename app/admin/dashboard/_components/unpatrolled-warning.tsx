@@ -2,10 +2,16 @@
 
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Clock, Calendar, MapPin } from "lucide-react";
+import {
+  Calendar,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  MapPin,
+} from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { getUnpatrolledLocations } from "@/app/actions/stats";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +45,9 @@ interface ShiftStatus {
 
 export function UnpatrolledWarning() {
   const today = new Date();
-  const [selectedDateString, setSelectedDateString] = useState<string>(format(today, "yyyy-MM-dd"));
+  const [selectedDateString, setSelectedDateString] = useState<string>(
+    format(today, "yyyy-MM-dd"),
+  );
   const [shiftStatuses, setShiftStatuses] = useState<ShiftStatus[]>([]);
   const [isPending, startTransition] = useTransition();
 
@@ -67,7 +75,9 @@ export function UnpatrolledWarning() {
   return (
     <div className="flex flex-col h-full max-h-[600px]">
       <div className="flex flex-col gap-2 mb-4 shrink-0 px-1 pt-1">
-        <label className="text-sm font-medium text-gray-500">Filter Tanggal</label>
+        <label className="text-sm font-medium text-gray-500">
+          Filter Tanggal
+        </label>
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative w-full sm:w-auto">
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
@@ -102,19 +112,25 @@ export function UnpatrolledWarning() {
                 <div
                   className={cn(
                     "p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors",
-                    isExpanded && "bg-gray-50"
+                    isExpanded && "bg-gray-50",
                   )}
                   onClick={() => toggleExpand(status.shift.id)}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "h-8 w-8 rounded-full flex items-center justify-center transition-colors shrink-0",
-                      status.isFullyComplete ? "bg-green-100 text-green-600" : "bg-orange-100 text-orange-600"
-                    )}>
+                    <div
+                      className={cn(
+                        "h-8 w-8 rounded-full flex items-center justify-center transition-colors shrink-0",
+                        status.isFullyComplete
+                          ? "bg-green-100 text-green-600"
+                          : "bg-orange-100 text-orange-600",
+                      )}
+                    >
                       <Clock className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-bold text-gray-900 text-sm truncate">{status.shift.name}</h4>
+                      <h4 className="font-bold text-gray-900 text-sm truncate">
+                        {status.shift.name}
+                      </h4>
                       <p className="text-[10px] text-gray-500 font-medium bg-white border border-gray-200 px-1.5 py-0.5 rounded w-fit mt-0.5 whitespace-nowrap">
                         {status.shift.startTime} - {status.shift.endTime}
                       </p>
@@ -123,15 +139,29 @@ export function UnpatrolledWarning() {
 
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="text-right">
-                      <span className={cn(
-                        "text-base font-bold",
-                        status.isFullyComplete ? "text-green-600" : "text-orange-500"
-                      )}>{status.completedRounds}</span>
-                      <span className="text-xs text-gray-400 font-medium">/5</span>
-                      <p className="text-[9px] text-gray-400 font-medium uppercase tracking-wider">Selesai</p>
+                      <span
+                        className={cn(
+                          "text-base font-bold",
+                          status.isFullyComplete
+                            ? "text-green-600"
+                            : "text-orange-500",
+                        )}
+                      >
+                        {status.completedRounds}
+                      </span>
+                      <span className="text-xs text-gray-400 font-medium">
+                        /5
+                      </span>
+                      <p className="text-[9px] text-gray-400 font-medium uppercase tracking-wider">
+                        Selesai
+                      </p>
                     </div>
                     <div className="h-6 w-6 flex items-center justify-center">
-                      {isExpanded ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -141,7 +171,7 @@ export function UnpatrolledWarning() {
                   <div
                     className={cn(
                       "h-full transition-all duration-500",
-                      status.isFullyComplete ? "bg-green-500" : "bg-orange-500"
+                      status.isFullyComplete ? "bg-green-500" : "bg-orange-500",
                     )}
                     style={{ width: `${(status.completedRounds / 5) * 100}%` }}
                   />
@@ -158,15 +188,19 @@ export function UnpatrolledWarning() {
                         >
                           <div className="flex items-center justify-between p-2 bg-gray-50/30 border-b border-gray-100/50">
                             <div className="flex items-center gap-2">
-                              <div className={cn(
-                                "h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold border",
-                                round.isComplete
-                                  ? "bg-green-100 border-green-200 text-green-700"
-                                  : "bg-white border-gray-200 text-gray-500"
-                              )}>
+                              <div
+                                className={cn(
+                                  "h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold border",
+                                  round.isComplete
+                                    ? "bg-green-100 border-green-200 text-green-700"
+                                    : "bg-white border-gray-200 text-gray-500",
+                                )}
+                              >
                                 {round.roundNumber}
                               </div>
-                              <span className="font-medium text-xs text-gray-700">Putaran {round.roundNumber}</span>
+                              <span className="font-medium text-xs text-gray-700">
+                                Putaran {round.roundNumber}
+                              </span>
                             </div>
 
                             {round.isComplete ? (
@@ -176,27 +210,36 @@ export function UnpatrolledWarning() {
                               </div>
                             ) : (
                               <span className="text-[10px] font-medium text-gray-400">
-                                {round.patrolledCount}/{status.totalLocations} Titik
+                                {round.patrolledCount}/{status.totalLocations}{" "}
+                                Titik
                               </span>
                             )}
                           </div>
 
                           {/* Detailed List of Unpatrolled Locations */}
-                          {!round.isComplete && round.unpatrolledLocations.length > 0 && (
-                            <div className="p-2 bg-white">
-                              <div className="flex flex-col gap-1.5">
-                                {round.unpatrolledLocations.map(loc => (
-                                  <div key={loc.id} className="flex items-center justify-between text-xs py-1 border-b border-gray-50 last:border-0 pl-1">
-                                    <div className="flex items-center gap-1.5 text-gray-700">
-                                      <MapPin className="h-3 w-3 text-red-400" />
-                                      <span className="font-medium">{loc.name}</span>
+                          {!round.isComplete &&
+                            round.unpatrolledLocations.length > 0 && (
+                              <div className="p-2 bg-white">
+                                <div className="flex flex-col gap-1.5">
+                                  {round.unpatrolledLocations.map((loc) => (
+                                    <div
+                                      key={loc.id}
+                                      className="flex items-center justify-between text-xs py-1 border-b border-gray-50 last:border-0 pl-1"
+                                    >
+                                      <div className="flex items-center gap-1.5 text-gray-700">
+                                        <MapPin className="h-3 w-3 text-red-400" />
+                                        <span className="font-medium">
+                                          {loc.name}
+                                        </span>
+                                      </div>
+                                      <span className="text-[10px] text-red-500 font-medium bg-red-50 px-1.5 py-0.5 rounded">
+                                        Belum
+                                      </span>
                                     </div>
-                                    <span className="text-[10px] text-red-500 font-medium bg-red-50 px-1.5 py-0.5 rounded">Belum</span>
-                                  </div>
-                                ))}
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
                         </div>
                       ))}
                     </div>
