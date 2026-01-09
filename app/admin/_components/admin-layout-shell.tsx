@@ -1,6 +1,7 @@
 "use client";
 
 import { Menu, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Sidebar } from "./sidebar";
 
@@ -12,11 +13,12 @@ export function AdminLayoutShell({
   user: { name?: string | null };
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
 
   // Close sidebar when route changes
   useEffect(() => {
     setIsOpen(false);
-  }, []);
+  }, [pathname]);
 
   return (
     <div className="flex min-h-dvh bg-gray-100 text-gray-900 relative">
@@ -40,11 +42,10 @@ export function AdminLayoutShell({
 
       {/* Mobile Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 h-full transform transition-transform duration-200 ease-in-out md:hidden ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 h-full transform transition-transform duration-200 ease-in-out md:hidden ${isOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
-        <Sidebar />
+        <Sidebar onLinkClick={() => setIsOpen(false)} />
       </div>
 
       {/* Content Area */}

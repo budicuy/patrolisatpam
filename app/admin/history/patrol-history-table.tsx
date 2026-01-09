@@ -269,24 +269,27 @@ export function PatrolHistoryTable({
     <>
       {/* Filters */}
       <div className="space-y-4 mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-        <div className="flex flex-col sm:flex-row gap-4 items-end">
+        <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
           <div className="w-full sm:w-auto">
-            <Label htmlFor="date-filter" className="mb-2 block text-xs">
+            <Label htmlFor="date-filter" className="mb-2 block text-xs font-medium text-gray-900">
               Filter Tanggal
             </Label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                <Calendar className="h-4 w-4" />
+              </div>
               <Input
                 type="date"
                 id="date-filter"
-                className="pl-9 w-full sm:w-[180px]"
+                className="w-full sm:w-[200px] pl-10 cursor-pointer bg-white text-black border-gray-200 focus:border-blue-500 placeholder:text-gray-400 [&::-webkit-calendar-picker-indicator]:hidden"
                 value={filterDate}
                 onChange={(e) => handleFilterChange("date", e.target.value)}
+                onClick={(e) => e.currentTarget.showPicker && e.currentTarget.showPicker()}
               />
             </div>
           </div>
           <div className="w-full sm:w-auto">
-            <Label htmlFor="shift-filter" className="mb-2 block text-xs">
+            <Label htmlFor="shift-filter" className="mb-2 block text-xs font-medium text-gray-900">
               Filter Shift
             </Label>
             <Select
@@ -295,7 +298,10 @@ export function PatrolHistoryTable({
                 handleFilterChange("shiftId", val === "all" ? "" : val)
               }
             >
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px] pl-10 relative bg-white text-black border-gray-200 focus:border-blue-500">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                  <Clock className="h-4 w-4" />
+                </div>
                 <SelectValue placeholder="Semua Shift" />
               </SelectTrigger>
               <SelectContent>
@@ -314,7 +320,7 @@ export function PatrolHistoryTable({
               size="icon"
               onClick={resetFilters}
               title="Reset Filter"
-              className="shrink-0"
+              className="mt-2 sm:mt-0 shrink-0 text-gray-400 hover:text-red-500 hover:bg-red-50"
             >
               <X className="w-4 h-4" />
             </Button>

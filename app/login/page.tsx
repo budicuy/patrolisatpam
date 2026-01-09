@@ -48,7 +48,7 @@ export default function LoginPage() {
             <Image src="/logo.webp" alt="Logo" width={210} height={90} className="w-full h-full object-contain" />
           </div>
           <p className="mt-4 text-sm text-gray-600">
-            Silakan masuk untuk memulai sesi
+            Silakan Login untuk memulai sesi
           </p>
         </div>
 
@@ -129,6 +129,8 @@ export default function LoginPage() {
               ) : null}
               {loading ? "Memproses..." : "Masuk"}
             </button>
+
+
           </div>
         </form>
       </div>
