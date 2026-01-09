@@ -125,8 +125,8 @@ export function UserList({ users: initialUsers, currentUserRole }: UserListProps
                       {user.name}
                     </td>
                     <td className="px-6 py-4 text-gray-500">{user.username}</td>
-                    <td className="px-6 py-4 text-gray-500 capitalize">
-                      {user.role}
+                    <td className="px-6 py-4 text-gray-500">
+                      {user.role === "hr" ? "HR" : user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                     </td>
                     <td className="px-6 py-4">
                       <span
