@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Poppins, Quicksand } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
@@ -19,6 +19,22 @@ const quicksand = Quicksand({
 export const metadata: Metadata = {
   title: "Patroli Satpam",
   description: "Sistem Monitoring Patroli Satpam",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Patroli Satpam",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#3b82f6",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -27,7 +43,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="id">
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
       <body className={`${poppins.variable} ${quicksand.variable} antialiased`}>
         <ProgressBarProvider>
           <SessionProvider>{children}</SessionProvider>
@@ -61,3 +81,4 @@ export default function RootLayout({
     </html>
   );
 }
+
