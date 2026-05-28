@@ -18,7 +18,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image"; // Added Import
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { checkInPatrol, getPatrolProgress } from "@/app/actions/patrol";
 import { uploadImage } from "@/app/actions/upload";
 import { Button } from "@/components/ui/button";
@@ -99,6 +99,13 @@ export default function PatrolInterface({
 
   const [accuracy, setAccuracy] = useState<number | null>(null);
 
+  /**
+   * Ref untuk mencegah double-submit.
+   * Menggunakan ref (bukan state) agar tidak menyebabkan re-render tambahan
+   * dan lebih handal mencegah race condition saat jaringan lambat.
+   */
+  const isSubmittingRef = useRef(false);
+
   // CLOCK LOGIC
   // Initialize with server time to avoid client-side manipulation
   const [now, setNow] = useState(new Date(serverTime));
@@ -156,11 +163,19 @@ export default function PatrolInterface({
   const confirmCheckIn = async () => {
     if (!targetLocation || !selectedShift) return;
 
+    // Guard: cegah double-submit akibat lag jaringan atau tap ganda
+    if (isSubmittingRef.current) {
+      console.warn("Check-in sedang diproses, abaikan tap ganda.");
+      return;
+    }
+
     if (checkInStatus === "tidak_aman" && !checkInNote) {
       alert("Mohon isi alasan kondisi tidak aman.");
       return;
     }
 
+    // Kunci submission sebelum async operation dimulai
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       let finalImageUrl: string | undefined;
@@ -177,7 +192,7 @@ export default function PatrolInterface({
         }
       }
 
-      // 2. Immediate DB Insert
+      // 2. Immediate DB Insert — kirim koordinat GPS untuk validasi server-side
       const result = await checkInPatrol(
         Number(user.id),
         selectedShift,
@@ -186,6 +201,8 @@ export default function PatrolInterface({
         checkInStatus,
         checkInNote,
         finalImageUrl,
+        currentPosition?.lat,   // koordinat GPS aktual dari HP satpam
+        currentPosition?.lng,   // koordinat GPS aktual dari HP satpam
       );
 
       if (result.error) {
@@ -197,14 +214,16 @@ export default function PatrolInterface({
       setVisitedLocations((prev) => [...prev, targetLocation.id]);
       setShowCheckInModal(false);
 
-      // Refresh progress to ensure sync
-      fetchProgress();
+      // 4. Refresh progress dan tunggu hasilnya agar state sinkron dengan DB
+      await fetchProgress();
     } catch (error: unknown) {
       console.error("Check in error", error);
       let msg = "Gagal check in.";
       if (error instanceof Error) msg = error.message;
       alert(msg);
     } finally {
+      // Selalu bebaskan kunci meski terjadi error
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };

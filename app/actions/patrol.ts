@@ -7,6 +7,29 @@ import { TIMEZONE_OFFSET_MS, TOTAL_ROUNDS } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { locations, patrolHistory, shifts } from "@/lib/schema";
 
+/**
+ * Menghitung jarak dua koordinat menggunakan rumus Haversine.
+ * Mengembalikan jarak dalam meter.
+ */
+function calculateDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const R = 6371000; // radius bumi dalam meter
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 // Helper to determine active shift window in specific timezone (WITA)
 function getShiftWindow(
   shift: { startTime: string; endTime: string },
@@ -169,6 +192,9 @@ export async function checkInPatrol(
   status: "aman" | "tidak_aman" = "aman",
   notes?: string,
   imageData?: string,
+  /** Koordinat GPS dari client — digunakan untuk validasi server-side */
+  clientLatitude?: number,
+  clientLongitude?: number,
 ) {
   try {
     // Auth check - user must be logged in
@@ -183,12 +209,14 @@ export async function checkInPatrol(
       throw new Error("Unauthorized: You can only check in for yourself");
     }
 
-    // 1. Get Shift Details
-    const shift = await db.query.shifts.findFirst({
-      where: eq(shifts.id, shiftId),
-    });
+    // 1. Get Shift & Location Details secara paralel
+    const [shift, location] = await Promise.all([
+      db.query.shifts.findFirst({ where: eq(shifts.id, shiftId) }),
+      db.query.locations.findFirst({ where: eq(locations.id, locationId) }),
+    ]);
 
     if (!shift) throw new Error("Shift tidak ditemukan");
+    if (!location) throw new Error("Lokasi tidak ditemukan");
 
     // 2. Validate Time (Shift Locking) with WITA
     const now = new Date();
@@ -203,12 +231,47 @@ export async function checkInPatrol(
       );
     }
 
-    // 3. Validate round number
+    // 3. Validasi GPS server-side (jika koordinat dikirim oleh client)
+    // Menggunakan toleransi 1000m sebagai safety net — validasi ketat sudah di client
+    if (clientLatitude !== undefined && clientLongitude !== undefined) {
+      const serverDistance = calculateDistance(
+        clientLatitude,
+        clientLongitude,
+        location.latitude,
+        location.longitude,
+      );
+      const maxAllowedDistance = Math.max(location.radius * 5, 1000); // min 1000m buffer
+      if (serverDistance > maxAllowedDistance) {
+        throw new Error(
+          `Posisi GPS tidak sesuai lokasi tujuan. Jarak terdeteksi: ${Math.round(serverDistance)}m dari ${location.name}.`,
+        );
+      }
+    }
+
+    // 4. Proteksi duplikat: tolak jika sudah ada check-in lokasi & ronde yang sama
+    //    dalam 30 detik terakhir (mencegah double-submit akibat lag jaringan)
+    const thirtySecondsAgo = new Date(now.getTime() - 30 * 1000);
+    const recentDuplicate = await db.query.patrolHistory.findFirst({
+      where: and(
+        eq(patrolHistory.userId, userId),
+        eq(patrolHistory.shiftId, shiftId),
+        eq(patrolHistory.locationId, locationId),
+        eq(patrolHistory.roundNumber, roundNumber),
+        gte(patrolHistory.checkInTime, thirtySecondsAgo),
+      ),
+    });
+    if (recentDuplicate) {
+      throw new Error(
+        "Check-in sudah tercatat untuk lokasi ini. Mohon tunggu sebentar sebelum mencoba lagi.",
+      );
+    }
+
+    // 5. Validate round number
     if (roundNumber < 1 || roundNumber > TOTAL_ROUNDS) {
       throw new Error(`Nomor putaran tidak valid (harus 1-${TOTAL_ROUNDS})`);
     }
 
-    // 4. Insert Log
+    // 6. Insert Log
     await db.insert(patrolHistory).values({
       userId,
       shiftId,
