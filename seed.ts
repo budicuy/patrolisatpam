@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import postgres from "postgres";
 import * as dotenv from "dotenv";
+import postgres from "postgres";
 
 dotenv.config();
 
@@ -15,17 +15,36 @@ const main = async () => {
   const startTime = Date.now();
   console.log("🌱 Memulai proses seeding database dari data backup.sql...\n");
 
-  const sqlPath = path.resolve(process.cwd(), "backup.sql");
+  let sqlPath = path.resolve(process.cwd(), "backup.sql");
   if (!fs.existsSync(sqlPath)) {
-    console.error(`❌ File backup tidak ditemukan di: ${sqlPath}`);
+    const backupsDir = path.resolve(process.cwd(), "backups");
+    if (fs.existsSync(backupsDir)) {
+      const files = fs
+        .readdirSync(backupsDir)
+        .filter((file) => file.endsWith(".sql"))
+        .sort()
+        .reverse();
+      if (files.length > 0) {
+        sqlPath = path.join(backupsDir, files[0]);
+      }
+    }
+  }
+
+  if (!fs.existsSync(sqlPath)) {
+    console.error(
+      `❌ File backup tidak ditemukan di: ${sqlPath} atau folder backups/`,
+    );
     process.exit(1);
   }
+  console.log(`📁 Menggunakan file backup: ${sqlPath}`);
 
   // max: 1 diperlukan agar postgres-js mengizinkan transaksi BEGIN ... COMMIT dari file SQL
   const sql = postgres(connectionString, { prepare: false, max: 1 });
 
   try {
-    console.log("⏳ Menjalankan eksekusi backup.sql (skema, tabel, sequence, constraints & 37.000+ data)...");
+    console.log(
+      "⏳ Menjalankan eksekusi backup.sql (skema, tabel, sequence, constraints & 37.000+ data)...",
+    );
     await sql.file(sqlPath);
 
     // Ambil rekapitulasi data yang berhasil di-seed
@@ -40,8 +59,12 @@ const main = async () => {
     console.log("\n✅ Seeding database berhasil diselesaikan!");
     console.log("📊 Rekapitulasi Data yang Masuk:");
     for (const t of tables) {
-      const countRes = await sql.unsafe(`SELECT COUNT(*) as count FROM "public"."${t.table_name}"`);
-      console.log(`   - ${t.table_name.padEnd(16)} : ${Number(countRes[0].count).toLocaleString()} baris`);
+      const countRes = await sql.unsafe(
+        `SELECT COUNT(*) as count FROM "public"."${t.table_name}"`,
+      );
+      console.log(
+        `   - ${t.table_name.padEnd(16)} : ${Number(countRes[0].count).toLocaleString()} baris`,
+      );
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
