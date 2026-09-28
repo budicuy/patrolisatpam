@@ -201,8 +201,8 @@ export default function PatrolInterface({
         checkInStatus,
         checkInNote,
         finalImageUrl,
-        currentPosition?.lat,   // koordinat GPS aktual dari HP satpam
-        currentPosition?.lng,   // koordinat GPS aktual dari HP satpam
+        currentPosition?.lat, // koordinat GPS aktual dari HP satpam
+        currentPosition?.lng, // koordinat GPS aktual dari HP satpam
       );
 
       if (result.error) {
@@ -388,16 +388,31 @@ export default function PatrolInterface({
     setIsCompressing(true);
     try {
       let fileToProcess = file;
-      if (file.size > 100 * 1024) {
+      const isHeic =
+        file.name.toLowerCase().endsWith(".heic") ||
+        file.name.toLowerCase().endsWith(".heif") ||
+        file.type.toLowerCase().includes("heic") ||
+        file.type.toLowerCase().includes("heif");
+
+      if (file.size > 100 * 1024 || isHeic) {
         const options = {
           maxSizeMB: 0.1,
           maxWidthOrHeight: 1200,
           useWebWorker: true,
+          fileType: "image/jpeg",
         };
         try {
-          fileToProcess = await imageCompression(file, options);
+          const compressed = await imageCompression(file, options);
+          if (isHeic) {
+            const newName = file.name.replace(/\.(heic|heif)$/i, ".jpg");
+            fileToProcess = new File([compressed], newName, {
+              type: "image/jpeg",
+            });
+          } else {
+            fileToProcess = compressed;
+          }
         } catch (cErr) {
-          console.error(cErr);
+          console.error("Gagal mengompres gambar:", cErr);
         }
       }
       setCheckInImageFile(fileToProcess);
@@ -791,7 +806,7 @@ export default function PatrolInterface({
                   <div className="flex items-center gap-2">
                     <Input
                       type="file"
-                      accept="image/*"
+                      accept="image/*,.heic,.heif"
                       onChange={handleImageUpload}
                       className="hidden"
                       id="upload-evidence"

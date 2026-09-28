@@ -60,7 +60,7 @@ export const patrolHistory = pgTable(
       .default("aman")
       .notNull(),
     notes: text("notes"),
-    imageData: text("image_data"), // Vercel Blob URL
+    imageData: text("image_data"), // S3 / Storage URL
   },
   (table) => ({
     // Indexes for frequently queried columns
