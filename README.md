@@ -1,6 +1,5 @@
 # 🛡️ Patroli Satpam - Security Patrol Management System
 
-Sistem manajemen dan monitoring patroli keamanan (satpam) berbasis web modern & responsif (PWA-ready). Dilengkapi dengan validasi lokasi titik pos berbasis GPS geofencing, peta OpenStreetMap, unggah foto bukti patroli langsung ke Cloud Object Storage (S3-compatible), pelacakan giliran shift, pencatatan insiden/status keamanan, rekapitulasi analitik, serta ekspor laporan ke format PDF dan Excel.
 Sistem manajemen dan monitoring patroli keamanan (satpam) berbasis web modern & responsif (PWA-ready). Dilengkapi dengan validasi lokasi titik pos berbasis GPS geofencing, peta OpenStreetMap, unggah foto bukti patroli langsung ke **Neon Object Storage (S3-compatible)**, database **Neon Serverless PostgreSQL**, pelacakan giliran shift, pencatatan insiden/status keamanan, rekapitulasi analitik, serta ekspor laporan ke format PDF dan Excel.
 
 ---
@@ -8,12 +7,10 @@ Sistem manajemen dan monitoring patroli keamanan (satpam) berbasis web modern & 
 ## 📑 Daftar Isi
 
 - [Tech Stack](#-tech-stack)
-- [Prasyarat Sistem (Yang Perlu Di-install)](#-prasyarat-sistem-yang-perlu-di-install)
 - [Prasyarat Sistem (Yang Perlu Di-install & Disiapkan)](#-prasyarat-sistem-yang-perlu-di-install--disiapkan)
 - [Struktur Direktori Proyek](#-struktur-direktori-proyek)
 - [Langkah Setup Proyek](#-langkah-setup-proyek)
 - [Konfigurasi Environment (.env)](#-konfigurasi-environment-env)
-- [Setting Database](#-setting-database)
 - [Setting Database & Storage (Neon)](#-setting-database--storage-neon)
 - [Menjalankan Aplikasi](#-menjalankan-aplikasi)
 - [Hak Akses & Role Pengguna](#-hak-akses--role-pengguna)
@@ -23,20 +20,17 @@ Sistem manajemen dan monitoring patroli keamanan (satpam) berbasis web modern & 
 
 ## 🛠️ Tech Stack
 
-Aplikasi ini dibangun menggunakan arsitektur modern:
 Aplikasi ini dibangun menggunakan arsitektur modern dengan ekosistem **Neon**:
 
 | Komponen | Teknologi | Keterangan |
 | :--- | :--- | :--- |
 | **Framework** | [Next.js 16](https://nextjs.org/) (App Router, Server Actions) | React 19, TypeScript 5 |
 | **Styling & UI** | [Tailwind CSS v4](https://tailwindcss.com/), Radix UI Primitives, Lucide Icons | Desain responsif (Mobile First untuk satpam, Desktop untuk admin) |
-| **Database** | [PostgreSQL](https://www.postgresql.org/) | Didukung oleh Neon Serverless / PostgreSQL lokal / Supabase |
 | **Database** | [Neon Database](https://neon.tech/) (Serverless PostgreSQL) | Skalabilitas otomatis, pooling connection, branching |
 | **Object Storage** | [Neon Object Storage](https://neon.tech/) (S3-Compatible) | Penyimpanan file foto bukti patroli menggunakan AWS S3 Client SDK |
 | **ORM & Migrations** | [Drizzle ORM](https://orm.drizzle.team/) & `drizzle-kit` | Type-safe query builder & auto migration |
 | **Autentikasi** | [NextAuth.js v5 (Auth.js)](https://authjs.dev/) | Session via Secure JWT Cookie, hash password dengan `bcryptjs` |
 | **Peta & Geolokasi** | [OpenStreetMap (OSM)](https://www.openstreetmap.org/), [Leaflet](https://leafletjs.com/), `react-leaflet`, `geolib` | Validasi koordinat GPS radius pos patroli (Bebas API Key) |
-| **Object Storage** | [AWS SDK S3 Client v3](https://aws.amazon.com/sdk-for-javascript/) | Kompatibel dengan AWS S3, Cloudflare R2, Neon Storage, MinIO |
 | **Laporan & Ekspor** | `jspdf`, `jspdf-autotable`, `xlsx` (SheetJS) | Cetak laporan patroli otomatis (PDF/Excel) |
 | **Visualisasi Data** | `recharts` | Grafik tren dan performa patroli di Dashboard Admin |
 | **Linter & Formatter** | [Biome JS](https://biomejs.dev/) | Linter & formatter berkecepatan tinggi |
@@ -44,10 +38,8 @@ Aplikasi ini dibangun menggunakan arsitektur modern dengan ekosistem **Neon**:
 
 ---
 
-## 💻 Prasyarat Sistem (Yang Perlu Di-install)
 ## 💻 Prasyarat Sistem (Yang Perlu Di-install & Disiapkan)
 
-Sebelum menjalankan aplikasi di komputer lokal atau server staf, pastikan perangkat lunak berikut telah terinstal:
 Sebelum menjalankan aplikasi di komputer lokal atau server staf, pastikan kebutuhan berikut telah siap:
 
 ### 1. Software yang Perlu Di-install di Laptop/PC
@@ -68,22 +60,11 @@ Sebelum menjalankan aplikasi di komputer lokal atau server staf, pastikan kebutu
    - *ATAU* **Node.js (LTS v20 atau v22+)**:
      - Unduh: [nodejs.org](https://nodejs.org/)
 
-3. **Database PostgreSQL**:
-   - **Opsi Cloud (Paling Direkomendasikan & Cepat):** Menggunakan akun cloud database yang sudah aktif (misal: [Neon.tech](https://neon.tech/) atau [Supabase](https://supabase.com/)).
-   - **Opsi Lokal (Jika ingin database offline di laptop):** Install PostgreSQL di komputer lokal (port `5432`) atau via Docker:
-     ```bash
-     docker run --name postgres-patroli -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=patrolisatpam -p 5432:5432 -d postgres:16
-     ```
 3. **Code Editor**:
    - Visual Studio Code / Cursor dengan ekstensi *Tailwind CSS IntelliSense* dan *Biome*.
 
-4. **Object Storage (S3-compatible)**:
-   - Digunakan untuk menampung file upload foto absensi & bukti patroli.
-   - Kredensial endpoint, access key, dan secret key didapatkan dari layanan S3 (AWS S3 / Cloudflare R2 / Neon Object Storage).
 ---
 
-5. **Code Editor**:
-   - Visual Studio Code / Cursor dengan ekstensi *Tailwind CSS IntelliSense* dan *Biome*.
 ### 2. Akun & Layanan Cloud (Neon)
 Proyek ini mengandalkan **[Neon](https://neon.tech/)** untuk dua kebutuhan utama dalam satu platform:
 1. **Neon Serverless PostgreSQL Database:**
@@ -110,19 +91,18 @@ patrolisatpam/
 │   ├── api/                   # API Routes (NextAuth handlers, proxy streaming foto S3)
 │   ├── login/                 # Halaman antarmuka login
 │   └── patrol/                # Antarmuka lapangan satpam (PWA check-in pos + GPS + foto)
-├── backups/                   # File dump SQL data awal & backup database
+├── backup.sql                 # File dump SQL data awal & backup database (37.000+ data)
+├── backups/                   # Direktori arsip cadangan SQL
 ├── components/                # Komponen UI global (Navbar, Button, Modal, Card, dsb.)
 ├── lib/
 │   ├── auth.ts                # Konfigurasi NextAuth.js v5 & verifikasi role
 │   ├── db.ts                  # Koneksi database pool postgres & Drizzle ORM
-│   ├── s3.ts                  # Helper upload, fetch stream, & presigned URL S3
 │   ├── s3.ts                  # Integrasi Neon Object Storage (AWS SDK S3 Client)
 │   ├── schema.ts              # Definisi skema tabel database (Drizzle)
 │   └── export-utils.ts        # Helper generasi file PDF & Excel
 ├── drizzle.config.ts          # Konfigurasi drizzle-kit CLI
 ├── middleware.ts              # Route protection & role-based access control
-├── seed.ts                    # Script auto-seeding data dari file backup SQL
-├── .env.example               # Template environment variables
+├── seed.ts                    # Script auto-seeding data dari file backup.sql
 ├── .env.example               # Template environment variables (Neon DB & Neon Storage)
 └── package.json               # Konfigurasi dependencies & script npm/bun
 ```
@@ -132,7 +112,6 @@ patrolisatpam/
 ## 🚀 Langkah Setup Proyek
 
 ### 1. Salin / Clone Proyek
-Buka terminal dan arahkan ke folder yang diinginkan:
 Buka terminal dan clone repository ini:
 ```bash
 git clone <URL_REPOSITORY_ANDA>
@@ -140,7 +119,6 @@ cd patrolisatpam
 ```
 
 ### 2. Install Dependencies
-Jalankan instalasi paket dependensi:
 Jalankan instalasi dependensi menggunakan Bun (atau npm):
 ```bash
 # Menggunakan Bun (direkomendasikan)
@@ -164,17 +142,12 @@ cp .env.example .env
 
 ## ⚙️ Konfigurasi Environment (.env)
 
-Buka file `.env` di text editor dan sesuaikan isinya:
 Buka file `.env` dan masukkan kredensial Neon Anda:
 
 ```env
 # ==========================================
-# 1. DATABASE POSTGRESQL
 # 1. DATABASE (Neon Serverless PostgreSQL)
 # ==========================================
-# Ganti dengan connection string PostgreSQL Anda
-# Format: postgresql://<user>:<password>@<host>:<port>/<dbname>?sslmode=require
-DATABASE_URL="postgresql://neondb_owner:password@ep-xyz.neon.tech/neondb?sslmode=require"
 # Dapatkan connection string dari Neon Console Dashboard (menu Connection Details)
 # Pastikan selalu menyertakan ?sslmode=require
 DATABASE_URL="postgresql://neondb_owner:password@ep-frosty-rice-xyz-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
@@ -188,12 +161,8 @@ DATABASE_URL="postgresql://neondb_owner:password@ep-frosty-rice-xyz-pooler.c-3.a
 AUTH_SECRET="cT2m9wwVr7dXKarxNboeOWBA/m90mE5sJN+XnQNAkk0="
 
 # ==========================================
-# 3. PENYIMPANAN FOTO BUKTI PATROLI (S3 / R2 / Neon)
 # 3. PENYIMPANAN FOTO BUKTI (Neon Object Storage - S3 Compatible)
 # ==========================================
-AWS_ENDPOINT_URL_S3="https://endpoint-s3-anda.com"
-AWS_ACCESS_KEY_ID="your_access_key_id"
-AWS_SECRET_ACCESS_KEY="your_secret_access_key"
 # Dapatkan kredensial S3 dari menu Object Storage di Neon Console
 AWS_ENDPOINT_URL_S3="https://br-jolly-cloud-xyz.storage.c-3.ap-southeast-1.aws.neon.tech"
 AWS_ACCESS_KEY_ID="nak_live_xxxxxxxxxxxxxxxxxxxxxxxx"
@@ -204,18 +173,12 @@ AWS_BUCKET_NAME="uploads"
 
 ---
 
-## 🗄️ Setting Database
 ## 🗄️ Setting Database & Storage (Neon)
 
-Silakan ikuti skenario yang sesuai dengan kebutuhan Anda:
 Silakan ikuti skenario yang sesuai:
 
-### Skenario 1: Menghubungkan ke Database yang Sudah Ada (Paling Umum)
 ### Skenario 1: Menghubungkan ke Database Neon yang Sudah Ada (Paling Umum)
 > [!IMPORTANT]
-> Jika staf Anda melanjutkan proyek dengan database yang **sudah aktif / sudah berisi data operasional**:
-> 1. Cukup masukkan `DATABASE_URL` yang diberikan ke file `.env`.
-> 2. **JANGAN jalankan perintah migrasi atau seeding apapun.**
 > Jika staf Anda melanjutkan proyek dengan instance Neon database yang **sudah berjalan / sudah berisi data**:
 > 1. Cukup masukkan `DATABASE_URL` dan kredensial S3 Neon ke file `.env`.
 > 2. **JANGAN jalankan perintah migrasi atau seeding.**
@@ -223,14 +186,9 @@ Silakan ikuti skenario yang sesuai:
 
 ---
 
-### Skenario 2: Inisialisasi Database Baru dari File Backup Data
-Jika staf membuat database PostgreSQL baru dan ingin mengisinya dengan data master serta riwayat patroli awal:
-### Skenario 2: Menggunakan Database Neon Baru & Restore dari Backup Data
+### Skenario 2: Menggunakan Database Neon Baru & Restore dari File `backup.sql`
 Jika staf membuat project database baru di Neon dan ingin mengisi seluruh data master serta riwayat patroli awal:
 
-```bash
-# Menggunakan Bun
-bun run db:seed
 1. Buat database baru di [Neon Console](https://console.neon.tech/).
 2. Salin connection string ke `DATABASE_URL` di `.env`.
 3. Jalankan script seed:
@@ -238,19 +196,13 @@ bun run db:seed
    # Menggunakan Bun
    bun run db:seed
 
-# ATAU menggunakan npm
-npm run db:seed
-```
-*Script ini otomatis membaca file SQL dari folder `backups/`, membuat tabel-tabel yang diperlukan, sequence, dan memasukkan seluruh data awal.*
    # ATAU menggunakan npm
    npm run db:seed
    ```
-   *Script ini otomatis membaca file SQL dari folder `backups/`, membuat tabel-tabel, sequence, relasi, dan mengisi seluruh data awal ke database Neon.*
+   *Script ini otomatis membaca file `backup.sql` di root proyek, membuat tabel-tabel yang diperlukan, sequence, relasi, dan memasukkan seluruh 37.000+ data awal ke database Neon.*
 
 ---
 
-### Skenario 3: Sinkronisasi Skema Kosong Baru (Tanpa Data Lama)
-Jika staf membuat database PostgreSQL baru yang benar-benar bersih dan ingin membuat struktur tabel dari awal:
 ### Skenario 3: Sinkronisasi Skema Bersih (Database Neon Baru Tanpa Data)
 Jika ingin memulai dari database Neon yang benar-benar kosong:
 
@@ -261,7 +213,6 @@ bun run db:push
 # ATAU menggunakan npm
 npm run db:push
 ```
-*Drizzle Kit akan membaca skema dari `lib/schema.ts` dan otomatis membuat tabel-tabel di database PostgreSQL Anda.*
 *Drizzle Kit akan otomatis membuat seluruh tabel di database Neon sesuai skema di `lib/schema.ts`.*
 
 ---
@@ -281,7 +232,6 @@ npm run dev
 Buka browser di alamat: **[http://localhost:3000](http://localhost:3000)**.
 
 ### Mode Produksi (Production Build)
-Untuk build dan menjalankan aplikasi pada server/VPS produksi:
 Untuk build dan deploy aplikasi pada server/VPS produksi:
 
 ```bash
@@ -293,8 +243,6 @@ bun run start    # atau: npm run start
 ```
 
 ### Script Tambahan
-- `bun run lint` : Menjalankan linter Biome untuk mendeteksi error kode.
-- `bun run format` : Memformat kode secara otomatis sesuai standar proyek.
 - `bun run lint` : Menjalankan linter Biome untuk memeriksa integritas kode.
 - `bun run format` : Memformat kode secara otomatis.
 
@@ -320,7 +268,6 @@ Aplikasi memiliki proteksi rute (`middleware.ts`) berdasarkan 3 tingkatan peran 
    - Fitur satpam:
      - Pemilihan Shift kerja dan Putaran Patroli (Round 1–5).
      - Deteksi GPS otomatis (hanya dapat check-in jika berada di dalam radius toleransi titik pos).
-     - Pengambilan foto langsung dari kamera sebagai bukti fisik.
      - Pengambilan foto langsung dari kamera sebagai bukti fisik (otomatis tersimpan ke Neon Object Storage).
      - Pemilihan status kondisi pos (*Aman* atau *Tidak Aman*) beserta catatan temuan kejadian.
 
@@ -328,11 +275,6 @@ Aplikasi memiliki proteksi rute (`middleware.ts`) berdasarkan 3 tingkatan peran 
 
 ## 💡 Catatan & Troubleshooting
 
-1. **Izin GPS / Geolocation di Browser HP:**
-   - Fitur check-in satpam mewajibkan izin akses lokasi GPS browser (`navigator.geolocation`).
-   - Pada perangkat seluler / smartphone, browser modern mewajibkan koneksi **HTTPS** atau **localhost** agar izin GPS dapat aktif.
-2. **Koneksi Database SSL:**
-   - Jika menggunakan Neon.tech atau penyedia cloud PostgreSQL lainnya, pastikan connection string menyertakan parameter `?sslmode=require`.
 1. **Koneksi Neon PostgreSQL SSL:**
    - Database Neon mewajibkan enkripsi SSL. Pastikan parameter `?sslmode=require` selalu ada di akhir `DATABASE_URL`.
 2. **Neon Object Storage (S3-Compatible):**
@@ -341,9 +283,6 @@ Aplikasi memiliki proteksi rute (`middleware.ts`) berdasarkan 3 tingkatan peran 
    - File gambar dilayani secara aman melalui proxy internal `/api/images/[...key]`.
 3. **Peta Tanpa API Key:**
    - Peta menggunakan OpenStreetMap (OSM) standar yang bebas digunakan tanpa memerlukan registrasi API Key eksternal.
-4. **Penyimpanan Gambar (S3 / R2):**
-   - Pastikan bucket S3 memiliki hak akses *read/write* untuk `AWS_ACCESS_KEY_ID` yang didaftarkan di `.env`.
-   - Endpoint gambar dilayani melalui proxy terproteksi di `/api/images/[...key]`.
 4. **Izin GPS / Geolocation di Browser HP:**
    - Fitur check-in satpam mewajibkan izin akses lokasi GPS browser (`navigator.geolocation`).
    - Pada smartphone, browser mewajibkan koneksi **HTTPS** atau **localhost** agar izin GPS dapat aktif.
@@ -353,4 +292,3 @@ Aplikasi memiliki proteksi rute (`middleware.ts`) berdasarkan 3 tingkatan peran 
 ---
 
 *Dokumentasi ini dibuat untuk memudahkan proses serah terima dan pengembangan lanjutan oleh tim pengembang.*
-
